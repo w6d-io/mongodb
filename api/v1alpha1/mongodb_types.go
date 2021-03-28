@@ -47,7 +47,6 @@ type MongoDBSpec struct {
 	// TLS configuration
 	// +optional
 	TLS *k8sdbv1alpha1.TLSConfig `json:"tls,omitempty"`
-
 }
 
 // MongoDBStatus defines the observed state of MongoDB
