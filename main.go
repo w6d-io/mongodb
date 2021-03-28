@@ -36,6 +36,21 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
+// Version microservice version
+var Version = ""
+
+// Revision git commit
+var Revision = ""
+
+// GoVersion ...
+var GoVersion = ""
+
+// Built Date built
+var Built = ""
+
+// OsArch ...
+var OsArch = ""
+
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
@@ -97,7 +112,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting manager")
+	setupLog.Info("starting manager", "Version", Version, "Built",
+		Built, "Revision", Revision, "Arch", OsArch, "GoVersion", GoVersion)
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
