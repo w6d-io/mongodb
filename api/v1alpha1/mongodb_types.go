@@ -52,8 +52,12 @@ type MongoDBSpec struct {
 
 // MongoDBStatus defines the observed state of MongoDB
 type MongoDBStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Phase of MongoDB instance health
+	// +optional
+	Phase MongoDBPhase `json:"phase,omitempty"`
+
+	// Conditions of the instances
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" `
 }
 
 //+kubebuilder:object:root=true
