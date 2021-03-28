@@ -17,6 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
+	k8sv1alpha1 "github.com/w6d-io/mongodb/apis/k8s/v1alpha1"
+	k8sdbv1alpha1 "github.com/w6d-io/mongodb/apis/k8sdb/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,11 +28,26 @@ import (
 
 // MongoDBSpec defines the desired state of MongoDB
 type MongoDBSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Version of MongoDB
+	Version string `json:"version"`
 
-	// Foo is an example field of MongoDB. Edit mongodb_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Replicas number of instance
+	Replicas int64 `json:"replicas,omitempty"`
+
+	// Storage spec for persistence
+	Storage *corev1.PersistentVolumeClaimSpec `json:"storage,omitempty"`
+
+	// AuthSecret contains database secret credential
+	AuthSecret *corev1.LocalObjectReference `json:"authSecret,omitempty"`
+
+	// PodTemplate is a configuration for pod
+	// +optional
+	PodTemplate *k8sv1alpha1.PodTemplate `json:"podTemplate,omitempty"`
+
+	// TLS configuration
+	// +optional
+	TLS *k8sdbv1alpha1.TLSConfig `json:"tls,omitempty"`
+
 }
 
 // MongoDBStatus defines the observed state of MongoDB
