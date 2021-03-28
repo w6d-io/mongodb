@@ -1,0 +1,49 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: mongodb.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: MongoDB is the Schema for the mongodbs API
+      displayName: Mongo DB
+      kind: MongoDB
+      name: mongodbs.db.w6d.io
+      version: v1alpha1
+  description: MongoDB manages MongoDB database
+  displayName: MongoDB
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - mongodb
+  - database
+  links:
+  - name: Mongodb
+    url: https://mongodb.domain
+  maintainers:
+  - email: david.alexandre@w6d.io
+    name: david972
+  maturity: alpha
+  provider:
+    name: Wildcard
+    url: https://www.w6d.io
+  version: 0.0.0

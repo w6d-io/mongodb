@@ -56,7 +56,7 @@ type MongoDBStatus struct {
 	Phase MongoDBPhase `json:"phase,omitempty"`
 
 	// Conditions of the instances
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" `
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
