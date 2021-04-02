@@ -14,4 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 Created on 29/03/2021
 */
-package staefulset
+package statefulset
+
+const (
+	MongoName                 string = "mongodb"
+	MongoRootPasswordKey      string = "mongodb-root-password"
+	MongoContainerPort        int32  = 27017
+	MongoContainerMetricsPort int32  = 9216
+)
+
+type Error struct {
+	Cause  error
+	Detail string
+}

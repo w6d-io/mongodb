@@ -15,3 +15,41 @@ limitations under the License.
 Created on 02/04/2021
 */
 package configmap
+
+import (
+	"github.com/w6d-io/mongodb/internal/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	db "github.com/w6d-io/mongodb/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+)
+
+func GetVolume(name string, reference corev1.LocalObjectReference) corev1.Volume {
+	var mode int32 = 0755
+	return corev1.Volume{
+		Name: name,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: reference.Name,
+				},
+				DefaultMode: &mode,
+			},
+		},
+	}
+}
+
+func getScriptConfigMap(mongoDB *db.MongoDB) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mongoDB.Name + "-scripts",
+			Namespace: mongoDB.Namespace,
+			Labels:    util.LabelsForMongoDB(mongoDB.Name),
+		},
+		Data: map[string]string{
+			"auto-discovery.sh": AutoDiscovery,
+			"setup.sh":          Setup,
+			"setup-hidden.sh":   SetupHidden,
+		},
+	}
+}

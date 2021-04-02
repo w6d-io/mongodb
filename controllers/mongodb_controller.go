@@ -18,13 +18,16 @@ package controllers
 
 import (
 	"context"
+	"github.com/google/uuid"
+	"github.com/w6d-io/mongodb/pkg/controllers/mongodb"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	dbv1alpha1 "github.com/w6d-io/mongodb/api/v1alpha1"
+	db "github.com/w6d-io/mongodb/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -47,9 +50,35 @@ type MongoDBReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("mongodb", req.NamespacedName)
-
+	correlationID := uuid.New().String()
+	ctx = context.WithValue(context.Background(), "correlation_id", correlationID)
+	logger := r.Log.WithValues("mongodb", req.NamespacedName, "correlation_id", correlationID)
+	log := logger.WithName("Reconcile")
+	var err error
 	// your logic here
+	mdb := &db.MongoDB{}
+	if err = r.Get(ctx, req.NamespacedName, mdb); err != nil {
+		if errors.IsNotFound(err) {
+			log.Info("MongoDB resource not found. Ignore since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		log.Error(err, "failed to get MongoDB")
+		return ctrl.Result{}, err
+	}
+
+	sts := &appsv1.StatefulSet{}
+	err = r.Get(ctx, req.NamespacedName, sts)
+	if err != nil && errors.IsNotFound(err) {
+		err = mongodb.CreateUpdate(ctx, r.Client, mdb)
+		if err != nil {
+			log.Error(err, "failed to create resources")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "failed to get StatefulSet")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -57,7 +86,7 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // SetupWithManager sets up the controller with the Manager.
 func (r *MongoDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&dbv1alpha1.MongoDB{}).
+		For(&db.MongoDB{}).
 		Owns(&appsv1.StatefulSet{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 10,

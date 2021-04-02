@@ -15,3 +15,8 @@ limitations under the License.
 Created on 02/04/2021
 */
 package configmap
+
+type Error struct {
+	Cause  error
+	Detail string
+}

@@ -15,3 +15,11 @@ limitations under the License.
 Created on 28/03/2021
 */
 package util
+
+const (
+	lowerCharSet   = "abcdedfghijklmnopqrst"
+	upperCharSet   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	specialCharSet = "_-!#$~%^&(){}+="
+	numberSet      = "0123456789"
+	allCharSet     = lowerCharSet + upperCharSet + specialCharSet + numberSet
+)

@@ -15,3 +15,46 @@ limitations under the License.
 Created on 02/04/2021
 */
 package config
+
+import (
+	"errors"
+	"flag"
+	"fmt"
+	"os"
+)
+
+type configFlag struct {
+	value string
+}
+
+func (f configFlag) String() string {
+	return f.value
+}
+
+func (f configFlag) Set(flagValue string) error {
+	if flagValue == "" {
+		return errors.New("config cannot be empty")
+	}
+	isFileExists := func(filename string) bool {
+		info, err := os.Stat(filename)
+		if os.IsNotExist(err) {
+			return false
+		}
+		return !info.IsDir()
+	}
+	if !isFileExists(flagValue) {
+		return fmt.Errorf("file %s does not exist", flagValue)
+	}
+	if err := New(flagValue); err != nil {
+		return fmt.Errorf("instanciate config returns %s", err)
+	}
+	f.value = flagValue
+	return nil
+}
+
+func BindFlag(fs *flag.FlagSet) {
+
+	var c configFlag
+	fs.Var(&c, "config", "config file")
+
+}

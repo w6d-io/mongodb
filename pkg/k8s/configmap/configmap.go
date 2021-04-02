@@ -15,3 +15,47 @@ limitations under the License.
 Created on 02/04/2021
 */
 package configmap
+
+import (
+	"context"
+
+	"github.com/w6d-io/mongodb/internal/util"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	db "github.com/w6d-io/mongodb/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+)
+
+func CreateUpdate(ctx context.Context, r client.Client, mongoDB *db.MongoDB) error {
+	log := util.GetLog(ctx, mongoDB).WithName("Create").WithName("configmap")
+	var err error
+
+	cm := &corev1.ConfigMap{}
+	log.V(1).Info("create configmap")
+	err = r.Get(ctx, util.GetTypesNamespaceNamed(ctx, mongoDB), cm)
+	if err != nil && errors.IsNotFound(err) {
+		cm = getScriptConfigMap(mongoDB)
+		err = r.Create(ctx, cm)
+		if err != nil {
+			log.Error(err, "fail to create configmap")
+			return &Error{Cause: err, Detail: "fail to create configmap"}
+		}
+	} else if err != nil {
+		log.Error(err, "fail to get configmap")
+		return &Error{Cause: err, Detail: "failed to get configmap"}
+	}
+	err = r.Update(ctx, cm)
+	if err != nil {
+		log.Error(err, "fail to update configmap")
+		return &Error{Cause: err, Detail: "fail to update configmap"}
+	}
+	return nil
+}
+
+func (e *Error) Error() string {
+	if e.Cause == nil {
+		return e.Detail
+	}
+	return e.Detail + " : " + e.Cause.Error()
+}

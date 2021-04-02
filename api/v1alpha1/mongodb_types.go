@@ -32,10 +32,10 @@ type MongoDBSpec struct {
 	Version string `json:"version"`
 
 	// Replicas number of instance
-	Replicas int64 `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Storage spec for persistence
-	Storage *corev1.PersistentVolumeClaimSpec `json:"storage,omitempty"`
+	Storage corev1.PersistentVolumeClaimSpec `json:"storage,omitempty"`
 
 	// AuthSecret contains database secret credential
 	AuthSecret *corev1.LocalObjectReference `json:"authSecret,omitempty"`

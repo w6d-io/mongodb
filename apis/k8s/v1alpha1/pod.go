@@ -25,7 +25,7 @@ type PodTemplate struct {
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
 	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
 	// +optional
-	NodeSelector corev1.NodeSelector `json:"nodeSelector,omitempty"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// If specified, the pod's tolerations.
 	// +optional
@@ -39,4 +39,7 @@ type PodTemplate struct {
 	// More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+
+	// SecurityContext is the securityContext for the mongodb container
+	SecurityContext *corev1.PodSecurityContext `json:"securityContext,omitempty" yaml:"securityContext,omitempty"`
 }

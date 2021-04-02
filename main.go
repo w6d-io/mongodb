@@ -18,6 +18,8 @@ package main
 
 import (
 	"flag"
+	"github.com/w6d-io/mongodb/internal/config"
+	"github.com/w6d-io/mongodb/internal/util"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -75,7 +77,9 @@ func main() {
 	opts := zap.Options{
 		Development: true,
 	}
-	opts.BindFlags(flag.CommandLine)
+	//opts.BindFlags(flag.CommandLine)
+	config.BindFlag(flag.CommandLine)
+	util.BindFlags(&opts, flag.CommandLine)
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))

@@ -15,3 +15,36 @@ limitations under the License.
 Created on 02/04/2021
 */
 package mongodb
+
+import (
+	"context"
+	"github.com/w6d-io/mongodb/pkg/k8s/secret"
+
+	"github.com/w6d-io/mongodb/internal/util"
+	"github.com/w6d-io/mongodb/pkg/k8s/configmap"
+	"github.com/w6d-io/mongodb/pkg/k8s/statefulset"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	db "github.com/w6d-io/mongodb/api/v1alpha1"
+)
+
+func CreateUpdate(ctx context.Context, r client.Client, mongoDB *db.MongoDB) error {
+	var err error
+	log := util.GetLog(ctx, mongoDB)
+	err = configmap.CreateUpdate(ctx, r, mongoDB)
+	if err != nil {
+		log.Error(err, "configmap processing failed")
+		return err
+	}
+	err = secret.Create(ctx, r, mongoDB)
+	if err != nil {
+		log.Error(err, "secret processing failed")
+		return err
+	}
+	err = statefulset.CreateUpdate(ctx, r, mongoDB)
+	if err != nil {
+		log.Error(err, "statefulSet processing failed")
+		return err
+	}
+	return nil
+}

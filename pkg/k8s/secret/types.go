@@ -15,3 +15,12 @@ limitations under the License.
 Created on 02/04/2021
 */
 package secret
+
+const (
+	MongoRootPasswordKey string = "mongodb-root-password"
+)
+
+type Error struct {
+	Cause  error
+	Detail string
+}

@@ -15,3 +15,40 @@ limitations under the License.
 Created on 02/04/2021
 */
 package secret
+
+import (
+	"context"
+	db "github.com/w6d-io/mongodb/api/v1alpha1"
+	"github.com/w6d-io/mongodb/internal/util"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+func Create(ctx context.Context, r client.Client, mongoDB *db.MongoDB) error {
+	log := util.GetLog(ctx, mongoDB).WithName("Create").WithName("Secret")
+	var err error
+
+	sec := &corev1.Secret{}
+	log.V(1).Info("")
+	err = r.Get(ctx, util.GetTypesNamespaceNamed(ctx, mongoDB), sec)
+	if err != nil && errors.IsNotFound(err) {
+		sec = getRootSecret(mongoDB)
+		err = r.Create(ctx, sec)
+		if err != nil {
+			log.Error(err, "fail to create secret")
+			return &Error{Cause: err, Detail: "fail to  create secret"}
+		}
+	} else if err != nil {
+		log.Error(err, "fail to get secret")
+		return &Error{Cause: err, Detail: "fail to get secret"}
+	}
+	return nil
+}
+
+func (e *Error) Error() string {
+	if e.Cause == nil {
+		return e.Detail
+	}
+	return e.Detail + " : " + e.Cause.Error()
+}
