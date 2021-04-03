@@ -24,6 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -78,6 +79,16 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	} else if err != nil {
 		log.Error(err, "failed to get StatefulSet")
 		return ctrl.Result{}, err
+	}
+	log.V(1).Info("update status")
+	if *sts.Spec.Replicas != *mdb.Spec.Replicas {
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			sts.Spec.Replicas = mdb.Spec.Replicas
+			return nil
+		})
+		if err != nil {
+			return ctrl.Result{Requeue: true}, client.IgnoreNotFound(err)
+		}
 	}
 
 	return ctrl.Result{}, nil
