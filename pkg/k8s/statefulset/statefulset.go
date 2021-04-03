@@ -18,27 +18,44 @@ package statefulset
 
 import (
 	"context"
+	"time"
+
+	"github.com/avast/retry-go"
 	"github.com/w6d-io/mongodb/internal/util"
 	"github.com/w6d-io/mongodb/pkg/k8s/secret"
-
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	db "github.com/w6d-io/mongodb/api/v1alpha1"
 )
 
-func CreateUpdate(ctx context.Context, r client.Client, mongoDB *db.MongoDB) error {
+func CreateUpdate(ctx context.Context, r client.Client, scheme *runtime.Scheme, mongoDB *db.MongoDB) error {
 	log := util.GetLog(ctx, mongoDB)
-	if !secret.IsKeyExist(ctx, r, util.GetSecretKeySelector(mongoDB.Name, MongoRootPasswordKey)) {
-		log.Error(nil, "Secret mongodb-root-password key does not exists")
-		return &Error{
-			Cause:  nil,
-			Detail: "Secret mongodb-root-password key does not exists",
+	if err := retry.Do(func() error {
+		if !secret.IsKeyExist(ctx, r, util.GetSecretKeySelector(mongoDB.Name, MongoRootPasswordKey)) {
+			log.Error(nil, "Secret mongodb-root-password key does not exists")
+			return &Error{
+				Cause:  nil,
+				Detail: "Secret mongodb-root-password key does not exists",
+			}
 		}
+		return nil
+	},
+		retry.Attempts(5),
+		retry.Delay(1*time.Second),
+	); err != nil {
+		return err
 	}
-	sts := getStatefulSetMongoDB(ctx, r, mongoDB)
+	sts := getStatefulSetMongoDB(ctx, r, scheme, mongoDB)
+	if sts == nil {
+		log.Error(nil, "get configmap return nil")
+		return &Error{Cause: nil, Detail: "get configmap return nil"}
+	}
+
 	log.V(1).Info("create statefulSet")
 	err := r.Create(ctx, sts)
-	if err != nil {
+	if err != nil && !errors.IsAlreadyExists(err) {
 		log.Error(err, "create statefulSet failed")
 		return &Error{
 			Cause:  err,

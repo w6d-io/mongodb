@@ -22,7 +22,9 @@ import (
 	db "github.com/w6d-io/mongodb/api/v1alpha1"
 	"github.com/w6d-io/mongodb/internal/config"
 	"github.com/w6d-io/mongodb/internal/util"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
@@ -52,7 +54,7 @@ func GetContentFromKeySelector(ctx context.Context, r client.Client, c *corev1.S
 	}
 	content, err := base64.StdEncoding.DecodeString(string(encryptedContent))
 	if err != nil {
-		log.Error(err, "decode secret failed")
+		log.V(1).Error(err, "decode secret failed")
 		return ""
 	}
 	return string(content)
@@ -60,6 +62,7 @@ func GetContentFromKeySelector(ctx context.Context, r client.Client, c *corev1.S
 
 // GetContentFromKey get secret content from key
 func GetContentFromKey(ctx context.Context, r client.Client, name, key string) string {
+
 	c := &corev1.SecretKeySelector{
 		LocalObjectReference: corev1.LocalObjectReference{
 			Name: name,
@@ -79,7 +82,9 @@ func IsKeyExist(ctx context.Context, r client.Client, c *corev1.SecretKeySelecto
 	secret := &corev1.Secret{}
 	o := client.ObjectKey{Name: c.Name, Namespace: config.GetNamespace()}
 	err := r.Get(ctx, o, secret)
-	if err != nil {
+	if err != nil && errors.IsNotFound(err) {
+		return false
+	} else if err != nil {
 		log.Error(err, "get secret")
 		return false
 	}
@@ -87,9 +92,11 @@ func IsKeyExist(ctx context.Context, r client.Client, c *corev1.SecretKeySelecto
 	return ok
 }
 
-func getRootSecret(mongoDB *db.MongoDB) *corev1.Secret {
+func getRootSecret(ctx context.Context, scheme *runtime.Scheme, mongoDB *db.MongoDB) *corev1.Secret {
+	log := util.GetLog(ctx,mongoDB).WithName("GetRootSecret")
+
 	passwd := util.GeneratePassword(30, 3, 3, 2)
-	return &corev1.Secret{
+	sec:= &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mongoDB.Name,
 			Namespace: mongoDB.Namespace,
@@ -99,4 +106,9 @@ func getRootSecret(mongoDB *db.MongoDB) *corev1.Secret {
 			MongoRootPasswordKey: passwd,
 		},
 	}
+	if err := ctrl.SetControllerReference(mongoDB, sec, scheme); err != nil {
+		log.Error(err, "set owner failed")
+		return nil
+	}
+	return sec
 }

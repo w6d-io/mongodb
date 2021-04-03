@@ -17,8 +17,12 @@ Created on 02/04/2021
 package configmap
 
 import (
+	"context"
 	"github.com/w6d-io/mongodb/internal/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	db "github.com/w6d-io/mongodb/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -39,8 +43,9 @@ func GetVolume(name string, reference corev1.LocalObjectReference) corev1.Volume
 	}
 }
 
-func getScriptConfigMap(mongoDB *db.MongoDB) *corev1.ConfigMap {
-	return &corev1.ConfigMap{
+func getScriptConfigMap(ctx context.Context, scheme *runtime.Scheme, mongoDB *db.MongoDB) *corev1.ConfigMap {
+	log := util.GetLog(ctx,mongoDB)
+	cm:= &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mongoDB.Name + "-scripts",
 			Namespace: mongoDB.Namespace,
@@ -52,4 +57,13 @@ func getScriptConfigMap(mongoDB *db.MongoDB) *corev1.ConfigMap {
 			"setup-hidden.sh":   SetupHidden,
 		},
 	}
+	if err := ctrl.SetControllerReference(mongoDB, cm, scheme); err != nil {
+		log.Error(err, "set owner failed")
+		return nil
+	}
+	return cm
+}
+
+func getTypesNamespacedNameScript(mongoDB *db.MongoDB) types.NamespacedName {
+	return types.NamespacedName{Name: mongoDB.Name + "-scripts", Namespace: mongoDB.Namespace}
 }

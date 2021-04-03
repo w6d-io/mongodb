@@ -18,14 +18,17 @@ package secret
 
 import (
 	"context"
-	db "github.com/w6d-io/mongodb/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/w6d-io/mongodb/internal/util"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	db "github.com/w6d-io/mongodb/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 )
 
-func Create(ctx context.Context, r client.Client, mongoDB *db.MongoDB) error {
+func Create(ctx context.Context, r client.Client, scheme *runtime.Scheme, mongoDB *db.MongoDB) error {
 	log := util.GetLog(ctx, mongoDB).WithName("Create").WithName("Secret")
 	var err error
 
@@ -33,7 +36,11 @@ func Create(ctx context.Context, r client.Client, mongoDB *db.MongoDB) error {
 	log.V(1).Info("")
 	err = r.Get(ctx, util.GetTypesNamespaceNamed(ctx, mongoDB), sec)
 	if err != nil && errors.IsNotFound(err) {
-		sec = getRootSecret(mongoDB)
+		sec = getRootSecret(ctx, scheme, mongoDB)
+		if sec == nil {
+			log.Error(nil, "get secret return nil")
+			return &Error{Cause: nil, Detail: "get secret return nil"}
+		}
 		err = r.Create(ctx, sec)
 		if err != nil {
 			log.Error(err, "fail to create secret")

@@ -28,6 +28,8 @@ import (
 )
 
 func getMetricsContainers(ctx context.Context, r client.Client, mongoDB *db.MongoDB) corev1.Container {
+	log := util.GetLog(ctx, mongoDB)
+	log.V(1).Info("get metrics URL")
 	cmd := `|
 /bin/mongodb_exporter --web.listen-address ":9216" --mongodb.uri "%s"`
 	cmd = fmt.Sprintf(cmd, getMetricsURL(ctx, r, mongoDB))
@@ -68,6 +70,8 @@ func getMetricsContainers(ctx context.Context, r client.Client, mongoDB *db.Mong
 }
 
 func getMetricsURL(ctx context.Context, r client.Client, mongoDB *db.MongoDB) string {
+	log := util.GetLog(ctx, mongoDB)
+	log.V(1).Info("get root password for metric request")
 	password := secret.GetContentFromKey(ctx, r, mongoDB.Name, MongoRootPasswordKey)
 	return fmt.Sprintf("mongodb://root:%slocalhost:%d/admin?%s",
 		util.EscapePassword(password), MongoContainerPort, getTLSMetricsArgs(mongoDB))

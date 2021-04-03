@@ -13,10 +13,22 @@ spec:
     kind: MongoDB
     listKind: MongoDBList
     plural: mongodbs
+    shortNames:
+    - mdb
     singular: mongodb
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.version
+      name: Version
+      type: string
+    - jsonPath: .status.phase
+      name: Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: MongoDB is the Schema for the mongodbs API

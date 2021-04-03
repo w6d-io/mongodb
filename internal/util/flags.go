@@ -127,7 +127,6 @@ func (l levelFlag) Set(flagValue string) error {
 
 // BindFlags custom flags
 func BindFlags(o *zap.Options, fs *flag.FlagSet) {
-
 	var outputFormat outputFormatFlag
 	outputFormat.zapOptions = o
 	fs.Var(&outputFormat, "log-format", "log encoding ( 'json' or 'text')")

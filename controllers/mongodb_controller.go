@@ -69,7 +69,7 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	sts := &appsv1.StatefulSet{}
 	err = r.Get(ctx, req.NamespacedName, sts)
 	if err != nil && errors.IsNotFound(err) {
-		err = mongodb.CreateUpdate(ctx, r.Client, mdb)
+		err = mongodb.CreateUpdate(ctx, r.Client, r.Scheme, mdb)
 		if err != nil {
 			log.Error(err, "failed to create resources")
 			return ctrl.Result{}, err

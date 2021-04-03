@@ -19,6 +19,8 @@ package statefulset
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/w6d-io/mongodb/internal/config"
 	"github.com/w6d-io/mongodb/internal/util"
@@ -32,7 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func getStatefulSetMongoDB(ctx context.Context, r client.Client, mongoDB *db.MongoDB) *appsv1.StatefulSet {
+func getStatefulSetMongoDB(ctx context.Context, r client.Client, scheme *runtime.Scheme, mongoDB *db.MongoDB) *appsv1.StatefulSet {
 	log := util.GetLog(ctx, mongoDB)
 	ls := util.LabelsForMongoDB(mongoDB.Name)
 	log.V(1).Info("build statefulSet")
@@ -59,14 +61,14 @@ func getStatefulSetMongoDB(ctx context.Context, r client.Client, mongoDB *db.Mon
 						getInitContainers(mongoDB),
 					},
 					Containers: []corev1.Container{
-						getContainers(mongoDB),
+						getContainers(ctx, mongoDB),
 						getMetricsContainers(ctx, r, mongoDB),
 					},
-					NodeSelector:       util.GetNodeSelector(mongoDB.Spec.PodTemplate.NodeSelector),
-					ServiceAccountName: util.GetServiceAccount(mongoDB.Spec.PodTemplate.ServiceAccountName),
-					SecurityContext:    util.GetSecurityContext(mongoDB.Spec.PodTemplate.SecurityContext),
-					Affinity:           util.GetAffinity(mongoDB.Spec.PodTemplate.Affinity),
-					Tolerations:        util.GetTolerations(mongoDB.Spec.PodTemplate.Tolerations),
+					NodeSelector:       util.GetNodeSelector(mongoDB.Spec.PodTemplate),
+					ServiceAccountName: util.GetServiceAccount(mongoDB.Spec.PodTemplate),
+					SecurityContext:    util.GetSecurityContext(mongoDB.Spec.PodTemplate),
+					Affinity:           util.GetAffinity(mongoDB.Spec.PodTemplate),
+					Tolerations:        util.GetTolerations(mongoDB.Spec.PodTemplate),
 					Volumes:            append(AddVolumes(mongoDB), AddVolumeTLS(mongoDB.Spec.TLS)...),
 				},
 			},
@@ -86,10 +88,17 @@ func getStatefulSetMongoDB(ctx context.Context, r client.Client, mongoDB *db.Mon
 			},
 		},
 	}
+	if err := ctrl.SetControllerReference(mongoDB, sts, scheme); err != nil {
+		log.Error(err, "set owner failed")
+		return nil
+	}
+
 	return sts
 }
 
-func getContainers(mongoDB *db.MongoDB) corev1.Container {
+func getContainers(ctx context.Context, mongoDB *db.MongoDB) corev1.Container {
+	log := util.GetLog(ctx, mongoDB)
+	log.V(1).Info("get container")
 	container := corev1.Container{
 		Name:  "mongodb",
 		Image: config.GetImage(MongoName),

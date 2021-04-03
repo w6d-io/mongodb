@@ -21,6 +21,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/go-logr/logr"
+	k8sv1alpha1 "github.com/w6d-io/mongodb/apis/k8s/v1alpha1"
 	"github.com/w6d-io/mongodb/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -73,41 +74,41 @@ func EscapePassword(password string) string {
 	return password
 }
 
-func GetNodeSelector(ns map[string]string) map[string]string {
-	def := config.GetNodeSelector()
-	if len(ns) == 0 {
-		ns = def
+func GetNodeSelector(podTemplate *k8sv1alpha1.PodTemplate) map[string]string {
+	ns := config.GetNodeSelector()
+	if podTemplate != nil && len(podTemplate.NodeSelector) != 0 {
+		ns = podTemplate.NodeSelector
 	}
 	return ns
 }
 
-func GetServiceAccount(sa string) string {
-	def := config.GetServiceAccountName()
-	if sa == "" {
-		sa = def
+func GetServiceAccount(podTemplate *k8sv1alpha1.PodTemplate) string {
+	sa := config.GetServiceAccountName()
+	if podTemplate != nil && podTemplate.ServiceAccountName != "" {
+		sa = podTemplate.ServiceAccountName
 	}
 	return sa
 }
-func GetSecurityContext(sc *corev1.PodSecurityContext) *corev1.PodSecurityContext {
-	def := config.GetSecurityContext()
-	if sc == nil {
-		sc = def
+func GetSecurityContext(podTemplate *k8sv1alpha1.PodTemplate) *corev1.PodSecurityContext {
+	sc := config.GetSecurityContext()
+	if podTemplate != nil && podTemplate.SecurityContext != nil {
+		sc = podTemplate.SecurityContext
 	}
 	return sc
 }
 
-func GetAffinity(af *corev1.Affinity) *corev1.Affinity {
-	def := config.GetAffinity()
-	if af == nil {
-		af = def
+func GetAffinity(podTemplate *k8sv1alpha1.PodTemplate) *corev1.Affinity {
+	af := config.GetAffinity()
+	if podTemplate != nil && podTemplate.Affinity != nil {
+		af = podTemplate.Affinity
 	}
 	return af
 }
 
-func GetTolerations(to []corev1.Toleration) []corev1.Toleration {
-	def := config.GetTolerations()
-	if len(to) == 0 {
-		to = def
+func GetTolerations(podTemplate *k8sv1alpha1.PodTemplate) []corev1.Toleration {
+	to := config.GetTolerations()
+	if podTemplate != nil && len(podTemplate.Tolerations) != 0 {
+		to = podTemplate.Tolerations
 	}
 	return to
 }

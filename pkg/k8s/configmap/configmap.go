@@ -18,6 +18,7 @@ package configmap
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/w6d-io/mongodb/internal/util"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -27,17 +28,21 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func CreateUpdate(ctx context.Context, r client.Client, mongoDB *db.MongoDB) error {
+func CreateUpdate(ctx context.Context, r client.Client, scheme *runtime.Scheme, mongoDB *db.MongoDB) error {
 	log := util.GetLog(ctx, mongoDB).WithName("Create").WithName("configmap")
 	var err error
 
 	cm := &corev1.ConfigMap{}
 	log.V(1).Info("create configmap")
-	err = r.Get(ctx, util.GetTypesNamespaceNamed(ctx, mongoDB), cm)
+	err = r.Get(ctx, getTypesNamespacedNameScript(mongoDB), cm)
 	if err != nil && errors.IsNotFound(err) {
-		cm = getScriptConfigMap(mongoDB)
+		cm = getScriptConfigMap(ctx, scheme, mongoDB)
+		if cm == nil {
+			log.Error(nil, "get configmap return nil")
+			return &Error{Cause: nil, Detail: "get configmap return nil"}
+		}
 		err = r.Create(ctx, cm)
-		if err != nil {
+		if err != nil && !errors.IsAlreadyExists(err) {
 			log.Error(err, "fail to create configmap")
 			return &Error{Cause: err, Detail: "fail to create configmap"}
 		}

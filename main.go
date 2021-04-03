@@ -20,6 +20,8 @@ import (
 	"flag"
 	"github.com/w6d-io/mongodb/internal/config"
 	"github.com/w6d-io/mongodb/internal/util"
+	zapraw "go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -75,14 +77,15 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	opts := zap.Options{
-		Development: true,
+		Development:     os.Getenv("RELEASE") != "prod",
+		StacktraceLevel: zapcore.PanicLevel,
 	}
 	//opts.BindFlags(flag.CommandLine)
 	config.BindFlag(flag.CommandLine)
 	util.BindFlags(&opts, flag.CommandLine)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts), zap.RawZapOpts(zapraw.AddCaller(), zapraw.AddCallerSkip(-1))))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
