@@ -50,31 +50,15 @@ const (
         [[ -n "$(k8s_svc_lb_ip "$namespace" "$service")" ]]
     }
     # Wait until LoadBalancer IP is ready
-    retry_while "k8s_svc_lb_ip_ready {{ $releaseNamespace }} $SVC_NAME" || exit 1
+    retry_while "k8s_svc_lb_ip_ready %s $SVC_NAME" || exit 1
     # Obtain LoadBalancer external IP
-    k8s_svc_lb_ip "{{ $releaseNamespace }}" "$SVC_NAME" | tee "$SHARED_FILE"
+    k8s_svc_lb_ip "%s" "$SVC_NAME" | tee "$SHARED_FILE"
   {{- end }}
 `
 	Setup string = `|-
     #!/bin/bash
-    {{- if .Values.externalAccess.enabled }}
-    {{- if eq .Values.externalAccess.service.type "LoadBalancer" }}
-    {{- if .Values.externalAccess.autoDiscovery.enabled }}
-    export MONGODB_ADVERTISED_HOSTNAME="$(<${SHARED_FILE})"
-    {{- else }}
-    ID="${MY_POD_NAME#"{{ $fullname }}-"}"
-    export MONGODB_ADVERTISED_HOSTNAME=$(echo '{{ .Values.externalAccess.service.loadBalancerIPs }}' | tr -d '[]' | cut -d ' ' -f "$(($ID + 1))")
-    {{- end }}
-    {{- else if eq .Values.externalAccess.service.type "NodePort" }}
-    {{- if .Values.externalAccess.service.domain }}
-    export MONGODB_ADVERTISED_HOSTNAME={{ .Values.externalAccess.service.domain }}
-    {{- else }}
-    export MONGODB_ADVERTISED_HOSTNAME=$(curl -s https://ipinfo.io/ip)
-    {{- end }}
-    {{- end }}
-    {{- end }}
     echo "Advertised Hostname: $MONGODB_ADVERTISED_HOSTNAME"
-    if [[ "$MY_POD_NAME" = "{{ $fullname }}-0" ]]; then
+    if [[ "$MY_POD_NAME" = "%s" ]]; then
         echo "Pod name matches initial primary pod name, configuring node as a primary"
         export MONGODB_REPLICA_SET_MODE="primary"
     else
@@ -88,22 +72,6 @@ const (
 `
 	SetupHidden = `|-
     #!/bin/bash
-    {{- if .Values.externalAccess.hidden.enabled }}
-    {{- if eq .Values.externalAccess.hidden.service.type "LoadBalancer" }}
-    {{- if .Values.externalAccess.autoDiscovery.enabled }}
-    export MONGODB_ADVERTISED_HOSTNAME="$(<${SHARED_FILE})"
-    {{- else }}
-    ID="${MY_POD_NAME#"{{ $fullname }}-hidden-"}"
-    export MONGODB_ADVERTISED_HOSTNAME=$(echo '{{ .Values.externalAccess.hidden.service.loadBalancerIPs }}' | tr -d '[]' | cut -d ' ' -f "$(($ID + 1))")
-    {{- end }}
-    {{- else if eq .Values.externalAccess.hidden.service.type "NodePort" }}
-    {{- if .Values.externalAccess.hidden.service.domain }}
-    export MONGODB_ADVERTISED_HOSTNAME={{ .Values.externalAccess.hidden.service.domain }}
-    {{- else }}
-    export MONGODB_ADVERTISED_HOSTNAME=$(curl -s https://ipinfo.io/ip)
-    {{- end }}
-    {{- end }}
-    {{- end }}
     echo "Advertised Hostname: $MONGODB_ADVERTISED_HOSTNAME"
     echo "Configuring node as a hidden node"
     export MONGODB_REPLICA_SET_MODE="hidden"

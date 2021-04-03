@@ -18,6 +18,7 @@ package configmap
 
 import (
 	"context"
+	"fmt"
 	"github.com/w6d-io/mongodb/internal/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,16 +45,16 @@ func GetVolume(name string, reference corev1.LocalObjectReference) corev1.Volume
 }
 
 func getScriptConfigMap(ctx context.Context, scheme *runtime.Scheme, mongoDB *db.MongoDB) *corev1.ConfigMap {
-	log := util.GetLog(ctx,mongoDB)
-	cm:= &corev1.ConfigMap{
+	log := util.GetLog(ctx, mongoDB)
+	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mongoDB.Name + "-scripts",
 			Namespace: mongoDB.Namespace,
 			Labels:    util.LabelsForMongoDB(mongoDB.Name),
 		},
 		Data: map[string]string{
-			"auto-discovery.sh": AutoDiscovery,
-			"setup.sh":          Setup,
+			"auto-discovery.sh": fmt.Sprintf(AutoDiscovery, mongoDB.Namespace, mongoDB.Namespace),
+			"setup.sh":          fmt.Sprintf(Setup, getFullname(mongoDB)),
 			"setup-hidden.sh":   SetupHidden,
 		},
 	}
@@ -62,6 +63,9 @@ func getScriptConfigMap(ctx context.Context, scheme *runtime.Scheme, mongoDB *db
 		return nil
 	}
 	return cm
+}
+func getFullname(mongoDB *db.MongoDB) string {
+	return fmt.Sprintf("%s-0", mongoDB.Name)
 }
 
 func getTypesNamespacedNameScript(mongoDB *db.MongoDB) types.NamespacedName {

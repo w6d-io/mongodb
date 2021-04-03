@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// CreateUpdate scripts configmap
 func CreateUpdate(ctx context.Context, r client.Client, scheme *runtime.Scheme, mongoDB *db.MongoDB) error {
 	log := util.GetLog(ctx, mongoDB).WithName("Create").WithName("configmap")
 	var err error

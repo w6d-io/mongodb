@@ -93,10 +93,10 @@ func IsKeyExist(ctx context.Context, r client.Client, c *corev1.SecretKeySelecto
 }
 
 func getRootSecret(ctx context.Context, scheme *runtime.Scheme, mongoDB *db.MongoDB) *corev1.Secret {
-	log := util.GetLog(ctx,mongoDB).WithName("GetRootSecret")
+	log := util.GetLog(ctx, mongoDB).WithName("GetRootSecret")
 
 	passwd := util.GeneratePassword(30, 3, 3, 2)
-	sec:= &corev1.Secret{
+	sec := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mongoDB.Name,
 			Namespace: mongoDB.Namespace,

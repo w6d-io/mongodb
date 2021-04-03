@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/w6d-io/mongodb/internal/util"
-	"github.com/w6d-io/mongodb/pkg/k8s/configmap"
 	"github.com/w6d-io/mongodb/pkg/k8s/statefulset"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -32,11 +31,11 @@ import (
 func CreateUpdate(ctx context.Context, r client.Client, scheme *runtime.Scheme, mongoDB *db.MongoDB) error {
 	var err error
 	log := util.GetLog(ctx, mongoDB)
-	err = configmap.CreateUpdate(ctx, r, scheme, mongoDB)
-	if err != nil {
-		log.Error(err, "configmap processing failed")
-		return err
-	}
+	//err = configmap.CreateUpdate(ctx, r, scheme, mongoDB)
+	//if err != nil {
+	//	log.Error(err, "configmap processing failed")
+	//	return err
+	//}
 	err = secret.Create(ctx, r, scheme, mongoDB)
 	if err != nil {
 		log.Error(err, "secret processing failed")

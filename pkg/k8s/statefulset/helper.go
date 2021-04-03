@@ -24,7 +24,6 @@ import (
 
 	"github.com/w6d-io/mongodb/internal/config"
 	"github.com/w6d-io/mongodb/internal/util"
-	"github.com/w6d-io/mongodb/pkg/k8s/configmap"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	db "github.com/w6d-io/mongodb/api/v1alpha1"
@@ -37,6 +36,7 @@ import (
 func getStatefulSetMongoDB(ctx context.Context, r client.Client, scheme *runtime.Scheme, mongoDB *db.MongoDB) *appsv1.StatefulSet {
 	log := util.GetLog(ctx, mongoDB)
 	ls := util.LabelsForMongoDB(mongoDB.Name)
+	var fsGroup int64 = 1001
 	log.V(1).Info("build statefulSet")
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -57,19 +57,20 @@ func getStatefulSetMongoDB(ctx context.Context, r client.Client, scheme *runtime
 					},
 				},
 				Spec: corev1.PodSpec{
-					InitContainers: []corev1.Container{
-						getInitContainers(mongoDB),
-					},
+					InitContainers: getInitContainers(mongoDB),
 					Containers: []corev1.Container{
 						getContainers(ctx, mongoDB),
 						getMetricsContainers(ctx, r, mongoDB),
 					},
 					NodeSelector:       util.GetNodeSelector(mongoDB.Spec.PodTemplate),
 					ServiceAccountName: util.GetServiceAccount(mongoDB.Spec.PodTemplate),
-					SecurityContext:    util.GetSecurityContext(mongoDB.Spec.PodTemplate),
-					Affinity:           util.GetAffinity(mongoDB.Spec.PodTemplate),
-					Tolerations:        util.GetTolerations(mongoDB.Spec.PodTemplate),
-					Volumes:            append(AddVolumes(mongoDB), AddVolumeTLS(mongoDB.Spec.TLS)...),
+					//SecurityContext:    util.GetSecurityContext(mongoDB.Spec.PodTemplate),
+					SecurityContext: &corev1.PodSecurityContext{
+						FSGroup: &fsGroup,
+					},
+					Affinity:    util.GetAffinity(mongoDB.Spec.PodTemplate),
+					Tolerations: util.GetTolerations(mongoDB.Spec.PodTemplate),
+					Volumes:     AddVolumeTLS(mongoDB.Spec.TLS),
 				},
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
@@ -99,96 +100,151 @@ func getStatefulSetMongoDB(ctx context.Context, r client.Client, scheme *runtime
 func getContainers(ctx context.Context, mongoDB *db.MongoDB) corev1.Container {
 	log := util.GetLog(ctx, mongoDB)
 	log.V(1).Info("get container")
+	nonRoot := true
+	var runUser int64 = 1001
 	container := corev1.Container{
 		Name:  "mongodb",
-		Image: config.GetImage(MongoName),
-		Command: []string{
-			"/scripts/setup.sh",
-		},
+		Image: getMongoImage(mongoDB),
+		//Command: []string{
+		//	"/scripts/setup.sh",
+		//},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          MongoName,
 				ContainerPort: MongoContainerPort,
 			},
 		},
-		Env: []corev1.EnvVar{
-			{
-				Name:  "BITNAMI_DEBUG",
-				Value: "false",
-			},
-			{
-				Name:  "MY_POD_NAME",
-				Value: mongoDB.Namespace,
-			},
-			{
-				Name:  "K8S_SERVICE_NAME",
-				Value: mongoDB.Name,
-			},
-			{
-				Name:  "MONGODB_INITIAL_PRIMARY_HOST",
-				Value: fmt.Sprintf("%s-0.%s.%s.svc.cluster.local", mongoDB.Name, mongoDB.Name, mongoDB.Namespace),
-			},
-			{
-				Name:  "MONGODB_REPLICA_SET_NAME",
-				Value: "rs0",
-			},
-			{
-				Name: "MONGODB_ROOT_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: mongoDB.Name,
-						},
-						Key: MongoRootPasswordKey,
-					},
-				},
-			},
-			{
-				Name:  "ALLOW_EMPTY_PASSWORD",
-				Value: "no",
-			},
-			{
-				Name:  "MONGODB_SYSTEM_LOG_VERBOSITY",
-				Value: "0",
-			},
-			{
-				Name:  "MONGODB_DISABLE_SYSTEM_LOG",
-				Value: "no",
-			},
-			{
-				Name:  "MONGODB_DISABLE_JAVASCRIPT",
-				Value: "no",
-			},
-			{
-				Name:  "MONGODB_ENABLE_IPV6",
-				Value: "no",
-			},
-			{
-				Name:  "MONGODB_ENABLE_DIRECTORY_PER_DB",
-				Value: "no",
-			},
-			AddEnvTLS(mongoDB.Spec.TLS),
+		Env: getEnv(mongoDB),
+		SecurityContext: &corev1.SecurityContext{
+			RunAsNonRoot: &nonRoot,
+			RunAsUser:    &runUser,
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      "datadir",
 				MountPath: "/bitnami/mongodb",
 			},
-			{
-				Name:      "scripts",
-				MountPath: "/scripts/setup.sh",
-				SubPath:   "setup.sh",
-			},
+			//{
+			//	Name:      "scripts",
+			//	MountPath: "/scripts/setup.sh",
+			//	SubPath:   "setup.sh",
+			//},
 		},
+		LivenessProbe:  getMongoProbe(30),
+		ReadinessProbe: getMongoProbe(5),
 	}
 	return container
 }
 
-func getInitContainers(mongoDB *db.MongoDB) corev1.Container {
-	if mongoDB.Spec.TLS == nil {
-		return corev1.Container{}
+func getMongoProbe(initDelay int32) *corev1.Probe {
+	return &corev1.Probe{
+		Handler: corev1.Handler{
+			Exec: &corev1.ExecAction{
+				Command: []string{
+					"mongo",
+					"--eval",
+					"db.adminCommand('ping')",
+				},
+			},
+		},
+		FailureThreshold:    6,
+		InitialDelaySeconds: initDelay,
+		PeriodSeconds:       10,
+		SuccessThreshold:    1,
+		TimeoutSeconds:      5,
 	}
-	return corev1.Container{
+}
+
+func getMongoImage(mongoDB *db.MongoDB) string {
+	return fmt.Sprintf("%s:%s-debian-10", config.GetImage(MongoName), mongoDB.Spec.Version)
+}
+func getEnv(mongoDB *db.MongoDB) []corev1.EnvVar {
+	env := []corev1.EnvVar{
+		{
+			Name:  "BITNAMI_DEBUG",
+			Value: "false",
+		},
+		{
+			Name:  "MY_POD_NAME",
+			Value: mongoDB.Namespace,
+		},
+		{
+			Name:  "K8S_SERVICE_NAME",
+			Value: mongoDB.Name,
+		},
+		{
+			Name:  "MONGODB_INITIAL_PRIMARY_HOST",
+			Value: getFullname(mongoDB),
+		},
+		{
+			Name:  "MONGODB_REPLICA_SET_NAME",
+			Value: "rs0",
+		},
+		{
+			Name: "MONGODB_ROOT_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: mongoDB.Name,
+					},
+					Key: MongoRootPasswordKey,
+				},
+			},
+		},
+		{
+			Name:  "ALLOW_EMPTY_PASSWORD",
+			Value: "no",
+		},
+		{
+			Name:  "MONGODB_SYSTEM_LOG_VERBOSITY",
+			Value: "0",
+		},
+		{
+			Name:  "MONGODB_DISABLE_SYSTEM_LOG",
+			Value: "no",
+		},
+		{
+			Name:  "MONGODB_DISABLE_JAVASCRIPT",
+			Value: "no",
+		},
+		{
+			Name:  "MONGODB_ENABLE_IPV6",
+			Value: "no",
+		},
+		{
+			Name:  "MONGODB_ENABLE_DIRECTORY_PER_DB",
+			Value: "no",
+		},
+	}
+	if tls := AddEnvTLS(mongoDB.Spec.TLS); len(tls) > 0 {
+		env = append(env, tls...)
+	}
+	return env
+}
+
+func getFullname(mongoDB *db.MongoDB) string {
+	return fmt.Sprintf("%s-0.%s.%s.svc.cluster.local", mongoDB.Name, mongoDB.Name, mongoDB.Namespace)
+}
+
+func getInitContainers(mongoDB *db.MongoDB) []corev1.Container {
+	var init []corev1.Container
+	if mongoDB.Spec.TLS == nil {
+		return init
+	}
+	vm := []corev1.VolumeMount{
+		{
+			Name:      "certs-volume",
+			MountPath: "/certs/CAs",
+		},
+		{
+			Name:      "certs",
+			MountPath: "/certs",
+		},
+	}
+	if tls := AddVolumeMountTLS(mongoDB.Spec.TLS); len(tls) > 0 {
+		vm = append(vm, tls...)
+	}
+	init = append(init, corev1.Container{
 
 		Name:            "generate-tls-certs",
 		Image:           config.GetImage("tls"),
@@ -199,17 +255,7 @@ func getInitContainers(mongoDB *db.MongoDB) corev1.Container {
 				Value: mongoDB.Namespace,
 			},
 		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "certs-volume",
-				MountPath: "/certs/CAs",
-			},
-			{
-				Name:      "certs",
-				MountPath: "/certs",
-			},
-			AddVolumeMountTLS(mongoDB.Spec.TLS),
-		},
+		VolumeMounts: vm,
 		Command: []string{
 			"sh",
 			"-c",
@@ -255,33 +301,34 @@ chmod 0600 mongodb-ca-cert mongodb.pem
 EOF
 `,
 		},
-	}
+	})
+	return init
 }
 
-func AddVolumes(mongoDB *db.MongoDB) []corev1.Volume {
-	var v []corev1.Volume
-	v = append(v, configmap.GetVolume("script", util.GetLocalObjectReference(mongoDB.Name+"-scripts")))
-	return v
-}
+//func AddVolumes(mongoDB *db.MongoDB) []corev1.Volume {
+//	var v []corev1.Volume
+//	v = append(v, configmap.GetVolume("scripts", util.GetLocalObjectReference(mongoDB.Name+"-scripts")))
+//	return v
+//}
 
-func AddEnvTLS(tlsConfig *k8sdbv1alpha1.TLSConfig) corev1.EnvVar {
-	env := corev1.EnvVar{}
+func AddEnvTLS(tlsConfig *k8sdbv1alpha1.TLSConfig) []corev1.EnvVar {
+	var env []corev1.EnvVar
 	if tlsConfig != nil {
-		env = corev1.EnvVar{
+		env = append(env, corev1.EnvVar{
 			Name:  "MONGODB_EXTRA_FLAGS",
 			Value: "--tlsMode=requireTLS --tlsCertificateKeyFile=/certs/mongodb.pem --tlsCAFile=/certs/mongodb-ca-cert",
-		}
+		})
 	}
 	return env
 }
 
-func AddVolumeMountTLS(tlsConfig *k8sdbv1alpha1.TLSConfig) corev1.VolumeMount {
-	vm := corev1.VolumeMount{}
+func AddVolumeMountTLS(tlsConfig *k8sdbv1alpha1.TLSConfig) []corev1.VolumeMount {
+	var vm []corev1.VolumeMount
 	if tlsConfig != nil {
-		vm = corev1.VolumeMount{
+		vm = append(vm, corev1.VolumeMount{
 			Name:      "certs",
 			MountPath: "/certs",
-		}
+		})
 	}
 	return vm
 }
