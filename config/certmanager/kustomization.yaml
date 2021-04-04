@@ -1,3 +1,5 @@
+namespace: k8sdb
+
 resources:
 - certificate.yaml
 
