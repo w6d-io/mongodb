@@ -8,10 +8,21 @@ metadata:
           "apiVersion": "db.w6d.io/v1alpha1",
           "kind": "MongoDB",
           "metadata": {
-            "name": "mongodb-sample"
+            "name": "mongodb-sample",
           },
           "spec": {
-            "foo": "bar"
+            "version": "4.4",
+            "replicas": 1,
+            "storage": {
+              "accessModes": [
+                "ReadWriteOnce"
+              ],
+              "resources": {
+                "requests": {
+                  "storage": "50Gi"
+                }
+              }
+            }
           }
         }
       ]
@@ -38,6 +49,78 @@ spec:
     spec:
       clusterPermissions:
       - rules:
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumeclaims
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumes
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
         - apiGroups:
           - db.w6d.io
           resources:
@@ -83,12 +166,12 @@ spec:
           replicas: 1
           selector:
             matchLabels:
-              control-plane: controller-manager
+              control-plane: mongodb-controller-manager
           strategy: {}
           template:
             metadata:
               labels:
-                control-plane: controller-manager
+                control-plane: mongodb-controller-manager
             spec:
               containers:
               - args:
@@ -107,15 +190,18 @@ spec:
                 - --metrics-bind-address=127.0.0.1:8080
                 - --leader-elect
                 command:
-                - /manager
+                - /mongodb-controler
                 image: w6dio/mongodb:latest
+                volumeMounts:
+                  - mountPath: /data
+                    name: config
                 livenessProbe:
                   httpGet:
                     path: /healthz
                     port: 8081
                   initialDelaySeconds: 15
                   periodSeconds: 20
-                name: manager
+                name: mongodb
                 readinessProbe:
                   httpGet:
                     path: /readyz
@@ -133,6 +219,11 @@ spec:
                   allowPrivilegeEscalation: false
               securityContext:
                 runAsNonRoot: true
+              volumes:
+                - name: config
+                  confimap:
+                    defaultMode: 0644
+                    name: mongodb-controller-manager
               serviceAccountName: mongodb-controller-manager
               terminationGracePeriodSeconds: 10
       permissions:
@@ -174,7 +265,7 @@ spec:
   - database
   links:
   - name: Mongodb
-    url: https://mongodb.domain
+    url: https://github.com/w6d-io/mongodb
   maintainers:
   - email: david.alexandre@w6d.io
     name: david972

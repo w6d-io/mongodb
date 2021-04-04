@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/w6d-io/mongodb/internal/util"
 	"github.com/w6d-io/mongodb/pkg/controllers/mongodb"
 
 	"github.com/go-logr/logr"
@@ -75,20 +76,16 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			log.Error(err, "failed to create resources")
 			return ctrl.Result{}, err
 		}
+
 		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
 		log.Error(err, "failed to get StatefulSet")
 		return ctrl.Result{}, err
 	}
 	log.V(1).Info("update status")
-	if *sts.Spec.Replicas != *mdb.Spec.Replicas {
-		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			sts.Spec.Replicas = mdb.Spec.Replicas
-			return nil
-		})
-		if err != nil {
-			return ctrl.Result{Requeue: true}, client.IgnoreNotFound(err)
-		}
+	if err = r.updateSTS(ctx, req, mdb); err != nil {
+		log.Error(err, "update sts failed")
+		return ctrl.Result{Requeue: true}, client.IgnoreNotFound(err)
 	}
 
 	return ctrl.Result{}, nil
@@ -103,4 +100,33 @@ func (r *MongoDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			MaxConcurrentReconciles: 10,
 		}).
 		Complete(r)
+}
+
+func (r *MongoDBReconciler) updateSTS(ctx context.Context, req ctrl.Request, mongoDB *db.MongoDB) error {
+	log := util.GetLog(ctx, mongoDB)
+	var err error
+	sts := &appsv1.StatefulSet{}
+	err = r.Get(ctx, req.NamespacedName, sts)
+	if err != nil {
+		return err
+	}
+	if *sts.Spec.Replicas != *mongoDB.Spec.Replicas {
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			sts := &appsv1.StatefulSet{}
+			err = r.Get(ctx, req.NamespacedName, sts)
+			if err != nil {
+				return client.IgnoreNotFound(err)
+			}
+			sts.Spec.Replicas = mongoDB.Spec.Replicas
+			if err := r.Update(ctx, sts); err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			log.Error(err, "update sts")
+			return err
+		}
+	}
+	return nil
 }

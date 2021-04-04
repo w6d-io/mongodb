@@ -26,10 +26,10 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
 # BUNDLE_IMG defines the image:tag used for the bundle. 
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
-BUNDLE_IMG ?= w6dio/mongodb-bundle:$(VERSION)
+BUNDLE_IMG ?= docker.io/w6dio/mongodb-bundle:$(VERSION)
 
 # Image URL to use all building/pushing image targets
-IMG ?= w6dio/mongodb:latest
+IMG ?= docker.io/w6dio/mongodb:$(VERSION)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -61,7 +61,7 @@ help: ## Display this help.
 ##@ Development
 
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=mongodb-manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
@@ -143,4 +143,30 @@ bundle-build:
 
 .PHONY: bundle-push ## Build the bundle image.
 bundle-push:
-	docker push $(BUNDLE_IMG) .
+	docker push $(BUNDLE_IMG)
+
+.PHONY: bundle-run ## Build the bundle image.
+bundle-run:
+	operator-sdk run bundle $(BUNDLE_IMG)
+
+.PHONY: bundle-cleanup ## Build the bundle image.
+bundle-cleanup:
+	operator-sdk cleanup mongodb
+
+# Options for "packagemanifests".
+ifneq ($(origin FROM_VERSION), undefined)
+PKG_FROM_VERSION := --from-version=$(FROM_VERSION)
+endif
+ifneq ($(origin CHANNEL), undefined)
+PKG_CHANNELS := --channel=$(CHANNEL)
+endif
+ifeq ($(IS_CHANNEL_DEFAULT), 1)
+PKG_IS_DEFAULT_CHANNEL := --default-channel
+endif
+PKG_MAN_OPTS ?= $(PKG_FROM_VERSION) $(PKG_CHANNELS) $(PKG_IS_DEFAULT_CHANNEL)
+
+# Generate package manifests.
+packagemanifests: kustomize manifests
+	operator-sdk generate kustomize manifests -q
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	$(KUSTOMIZE) build config/manifests | operator-sdk generate packagemanifests -q --version $(VERSION) $(PKG_MAN_OPTS)

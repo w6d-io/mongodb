@@ -1,5 +1,14 @@
 # Build the manager binary
-FROM golang:1.15 as builder
+ARG GOVERSION=1.15.5
+FROM golang:$GOVERSION as builder
+ARG GOVERSION=1.15.5
+ARG VCS_REF
+ARG BUILD_DATE
+ARG VERSION
+ENV GO111MODULE="on" \
+    CGO_ENABLED=1 \
+    GOOS=linux \
+    GOARCH=amd64
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -12,16 +21,34 @@ RUN go mod download
 # Copy the go source
 COPY main.go main.go
 COPY api/ api/
+COPY apis/ apis/
 COPY controllers/ controllers/
+COPY internal/ internal/
+COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
+RUN  go build \
+     -ldflags="-X 'main.Version=${VERSION}' -X 'main.Revision=${VCS_REF}' -X 'main.GoVersion=go${GOVERSION}' -X 'main.Built=${BUILD_DATE}' -X 'main.OsArch=${GOOS}/${GOARCH}'" \
+     -a -o mongodb-controler main.go
 
-# Use distroless as minimal base image to package the manager binary
+RUN chown 1001:1001 mongodb-controler
+
+# Use distroless as minimal base image to package the mongodb-controler binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+FROM gcr.io/distroless/base:nonroot
+ARG VCS_REF
+ARG BUILD_DATE
+ARG VERSION
+ARG PROJECT_URL
+ARG USER_EMAIL="david.alexandre@w6d.io"
+ARG USER_NAME="David ALEXANDRE"
+LABEL maintainer="${USER_NAME} <${USER_EMAIL}>" \
+        io.w6d.ci.vcs-ref=$VCS_REF       \
+        io.w6d.ci.vcs-url=$PROJECT_URL   \
+        io.w6d.ci.build-date=$BUILD_DATE \
+        io.w6d.ci.version=$VERSION
 WORKDIR /
-COPY --from=builder /workspace/manager .
-USER 65532:65532
+COPY --from=builder /workspace/mongodb-controler .
+USER 1001:1001
 
-ENTRYPOINT ["/manager"]
+ENTRYPOINT ["/mongodb-controler"]
