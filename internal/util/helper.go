@@ -167,3 +167,23 @@ func GeneratePassword(passwordLength, minSpecialChar, minNum, minUpperCase int) 
 	})
 	return string(inRune)
 }
+
+// StringInArray ...
+func StringInArray(needle string, haystack []string) bool {
+	for _, elem := range haystack {
+		if elem == needle {
+			return true
+		}
+	}
+	return false
+}
+
+// AccessModeIn ...
+func AccessModeIn(needle corev1.PersistentVolumeAccessMode, slice []corev1.PersistentVolumeAccessMode) bool {
+	for _, elem := range slice {
+		if elem == needle {
+			return true
+		}
+	}
+	return false
+}

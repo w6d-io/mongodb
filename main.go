@@ -18,11 +18,13 @@ package main
 
 import (
 	"flag"
-	"github.com/w6d-io/mongodb/internal/config"
-	"github.com/w6d-io/mongodb/internal/util"
+	"os"
+
 	zapraw "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
+
+	"github.com/w6d-io/mongodb/internal/config"
+	"github.com/w6d-io/mongodb/internal/util"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -100,6 +102,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	//+kubebuilder:scaffold:builder
 	if err = (&controllers.MongoDBReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("MongoDB"),
@@ -108,8 +111,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "MongoDB")
 		os.Exit(1)
 	}
-	//+kubebuilder:scaffold:builder
 
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err = (&dbv1alpha1.MongoDB{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MongoDB")
+			os.Exit(1)
+		}
+	}
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
