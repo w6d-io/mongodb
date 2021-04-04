@@ -26,4 +26,4 @@ data:
       metrics: 'bitnami/mongodb-exporter:0.11.2-debian-10-r114'
 kind: ConfigMap
 metadata:
-  name: mongodb-controller-manager
+  name: mongodb-controller-manager-config

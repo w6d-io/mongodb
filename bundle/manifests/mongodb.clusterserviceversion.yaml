@@ -223,7 +223,7 @@ spec:
                 - name: config
                   confimap:
                     defaultMode: 0644
-                    name: mongodb-controller-manager
+                    name: mongodb-controller-manager-config
               serviceAccountName: mongodb-controller-manager
               terminationGracePeriodSeconds: 10
       permissions:
