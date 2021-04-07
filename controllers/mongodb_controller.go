@@ -18,13 +18,15 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"github.com/w6d-io/mongodb/internal/util"
 	"github.com/w6d-io/mongodb/pkg/controllers/mongodb"
-
-	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -82,12 +84,16 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		log.Error(err, "failed to get StatefulSet")
 		return ctrl.Result{}, err
 	}
-	log.V(1).Info("update status")
+	log.V(1).Info("update sts")
 	if err = r.updateSTS(ctx, req, mdb); err != nil {
 		log.Error(err, "update sts failed")
 		return ctrl.Result{Requeue: true}, client.IgnoreNotFound(err)
 	}
-
+	log.V(1).Info("update status")
+	if err = r.UpdateStatus(ctx, mdb, sts); err != nil {
+		log.Error(err, "update status failed")
+		return ctrl.Result{Requeue: true}, err
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -129,4 +135,90 @@ func (r *MongoDBReconciler) updateSTS(ctx context.Context, req ctrl.Request, mon
 		}
 	}
 	return nil
+}
+
+func (r *MongoDBReconciler) UpdateStatus(ctx context.Context, mdb *db.MongoDB, sts *appsv1.StatefulSet) error {
+	log := util.GetLog(ctx, mdb)
+	var err error
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		mdb.Status.Phase, err = r.GetMongoDBStatus(ctx, mdb, sts)
+		if err != nil {
+			log.Error(err, "get mongodb status failed")
+			return err
+		}
+		if err := r.Status().Update(ctx, mdb); err != nil {
+			log.Error(err, "unable to update Play status")
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *MongoDBReconciler) GetMongoDBStatus(ctx context.Context, mdb *db.MongoDB, sts *appsv1.StatefulSet) (db.MongoDBPhase, error) {
+	var indexes []int
+	if mdb.Spec.Replicas == nil || *mdb.Spec.Replicas == 0 {
+		return db.MongoDBPhasePaused, nil
+	}
+	for p := 0; p < int(sts.Status.Replicas); p++ {
+		i, err := r.GetPodStatus(ctx, mdb, p)
+		if err != nil {
+			return "", err
+		}
+		indexes = append(indexes, i)
+	}
+	var max int
+	for _, index := range indexes {
+		if index > max {
+			max = index
+		}
+	}
+	return status[max], nil
+}
+
+func (r *MongoDBReconciler) GetPodStatus(ctx context.Context, mdb *db.MongoDB, index int) (int, error) {
+	log := util.GetLog(ctx, mdb)
+	var err error
+	po := &corev1.Pod{}
+	name := fmt.Sprintf("%s-%d", mdb.Name, index)
+	nn := types.NamespacedName{Name: name, Namespace: mdb.Namespace}
+	err = r.Get(ctx, nn, po)
+	if err != nil {
+		log.Error(err, "get pod failed")
+		return 0, err
+	}
+	return GetStatusIndex(po.Status.ContainerStatuses), nil
+}
+
+// GetStatusIndex returns a kubernetes State
+func GetStatusIndex(cs []corev1.ContainerStatus) int {
+	if len(cs) == 0 {
+		return 2
+	}
+	for _, c := range cs {
+		if c.Name != "mongodb" {
+			continue
+		}
+		if c.Ready && c.State.Running != nil {
+			return 0
+		}
+		if c.State.Waiting != nil && c.State.Waiting.Reason == "ContainerCreating" {
+			return 1
+		}
+		if c.State.Waiting != nil && c.State.Waiting.Reason == "CrashLoopBackOff" {
+			return 3
+		}
+	}
+	return 2
+}
+
+var status = map[int]db.MongoDBPhase{
+	-1: db.MongoDBPhasePaused,
+	0:  db.MongoDBPhaseReady,
+	1:  db.MongoDBPhaseNotReady,
+	2:  db.MongoDBPhaseProvisioning,
+	3:  db.MongoDBPhaseCritical,
 }

@@ -20,16 +20,18 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"math/rand"
+	"strings"
+
 	"github.com/go-logr/logr"
-	k8sv1alpha1 "github.com/w6d-io/mongodb/apis/k8s/v1alpha1"
 	"github.com/w6d-io/mongodb/internal/config"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"math/rand"
+
+	k8sv1alpha1 "github.com/w6d-io/mongodb/apis/k8s/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"strings"
 )
 
 // AsSha256 return the sha256 hash from any
@@ -127,6 +129,11 @@ func GetTypesNamespaceNamed(ctx context.Context, object runtime.Object) types.Na
 		return types.NamespacedName{}
 	}
 	return types.NamespacedName{Name: o.GetName(), Namespace: o.GetNamespace()}
+}
+
+func GetTypesNamespacedNameFromString(namespacedName string) types.NamespacedName {
+	name := strings.SplitN(namespacedName, "/", 2)
+	return types.NamespacedName{Name: name[1], Namespace: name[0]}
 }
 
 func GetLog(ctx context.Context, obj runtime.Object) logr.Logger {

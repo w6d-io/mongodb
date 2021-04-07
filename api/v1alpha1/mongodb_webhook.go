@@ -34,14 +34,14 @@ func (in *MongoDB) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-// +kubebuilder:webhook:path=/mutate-db-w6d-io-v1alpha1-mongodb,mutating=true,failurePolicy=fail,admissionReviewVersions=v1;v1beta1,sideEffects=None,groups=db.w6d.io,resources=mongodbs,verbs=create;update,versions=v1alpha1,name=mmongodb.kb.io
+// +kubebuilder:webhook:path=/mutate-db-w6d-io-v1alpha1-mongodb,mutating=true,failurePolicy=fail,admissionReviewVersions=v1;v1beta1,sideEffects=None,groups=db.w6d.io,resources=mongodbs,verbs=create;update,versions=v1alpha1,name=mutate.mongodb.db.w6d.io
 
 var _ webhook.Defaulter = &MongoDB{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (in *MongoDB) Default() {
 	mongodblog.Info("default", "name", in.Name)
-	if *in.Spec.Replicas == 0 {
+	if in.Spec.Replicas == nil {
 		in.Spec.Replicas = new(int32)
 		*in.Spec.Replicas = 1
 	}
@@ -51,7 +51,7 @@ func (in *MongoDB) Default() {
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-// +kubebuilder:webhook:verbs=create;update;delete,path=/validate-db-w6d-io-v1alpha1-mongodb,mutating=false,failurePolicy=fail,admissionReviewVersions=v1;v1beta1,sideEffects=None,groups=db.w6d.io,resources=mongodbs,versions=v1alpha1,name=vmongodb.kb.io
+// +kubebuilder:webhook:verbs=create;update;delete,path=/validate-db-w6d-io-v1alpha1-mongodb,mutating=false,failurePolicy=fail,admissionReviewVersions=v1;v1beta1,sideEffects=None,groups=db.w6d.io,resources=mongodbs,versions=v1alpha1,name=validate.mongodb.db.w6d.io
 
 var _ webhook.Validator = &MongoDB{}
 

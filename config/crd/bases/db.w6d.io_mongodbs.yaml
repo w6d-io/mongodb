@@ -1330,8 +1330,6 @@ spec:
               version:
                 description: Version of MongoDB
                 type: string
-            required:
-            - version
             type: object
           status:
             description: MongoDBStatus defines the observed state of MongoDB

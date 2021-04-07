@@ -22,13 +22,14 @@ import (
 	db "github.com/w6d-io/mongodb/api/v1alpha1"
 	"github.com/w6d-io/mongodb/internal/config"
 	"github.com/w6d-io/mongodb/internal/util"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 // GetContentFromKeySelector Get Secret content and decode
@@ -41,7 +42,11 @@ func GetContentFromKeySelector(ctx context.Context, r client.Client, c *corev1.S
 		return ""
 	}
 	secret := &corev1.Secret{}
-	o := client.ObjectKey{Name: c.Name, Namespace: config.GetNamespace()}
+	o := types.NamespacedName{Name: c.Name, Namespace: config.GetNamespace()}
+	if strings.Contains(c.Name, "/") {
+		o = util.GetTypesNamespacedNameFromString(c.Name)
+	}
+	log.V(1).Info("get types namespaced Name", "object", o)
 	err := r.Get(ctx, o, secret)
 	if err != nil {
 		log.Error(err, "get secret")
@@ -74,15 +79,20 @@ func GetContentFromKey(ctx context.Context, r client.Client, name, key string) s
 
 func IsKeyExist(ctx context.Context, r client.Client, c *corev1.SecretKeySelector) bool {
 	correlationID := ctx.Value("correlation_id")
-	log := ctrl.Log.WithValues("correlation_id", correlationID, "name", c.Name, "key", c.Key)
 	if r == nil || c == nil {
-		log.V(1).Info("k8s client or configmap key is nil")
 		return false
 	}
+	log := ctrl.Log.WithValues("correlation_id", correlationID, "name", c.Name, "key", c.Key)
 	secret := &corev1.Secret{}
-	o := client.ObjectKey{Name: c.Name, Namespace: config.GetNamespace()}
+
+	o := types.NamespacedName{Name: c.Name, Namespace: config.GetNamespace()}
+	if strings.Contains(c.Name, "/") {
+		o = util.GetTypesNamespacedNameFromString(c.Name)
+	}
+	log.V(1).Info("get types namespaced Name", "object", o)
 	err := r.Get(ctx, o, secret)
 	if err != nil && errors.IsNotFound(err) {
+		log.Error(err, "get secret")
 		return false
 	} else if err != nil {
 		log.Error(err, "get secret")

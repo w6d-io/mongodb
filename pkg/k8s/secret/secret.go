@@ -36,9 +36,10 @@ func Create(ctx context.Context, r client.Client, scheme *runtime.Scheme, mongoD
 	log.V(1).Info("")
 	err = r.Get(ctx, util.GetTypesNamespaceNamed(ctx, mongoDB), sec)
 	if err != nil && errors.IsNotFound(err) {
+		log.V(1).Info("create secret")
 		sec = getRootSecret(ctx, scheme, mongoDB)
 		if sec == nil {
-			log.Error(nil, "get secret return nil")
+			log.Error(nil, "get secret resource return nil")
 			return &Error{Cause: nil, Detail: "get secret return nil"}
 		}
 		err = r.Create(ctx, sec)
@@ -46,6 +47,7 @@ func Create(ctx context.Context, r client.Client, scheme *runtime.Scheme, mongoD
 			log.Error(err, "fail to create secret")
 			return &Error{Cause: err, Detail: "fail to  create secret"}
 		}
+		log.V(1).Info("secret created")
 	} else if err != nil {
 		log.Error(err, "fail to get secret")
 		return &Error{Cause: err, Detail: "fail to get secret"}

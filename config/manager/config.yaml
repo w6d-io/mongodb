@@ -1,0 +1,15 @@
+apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
+kind: ControllerManagerConfig
+health:
+  healthProbeBindAddress: :8081
+metrics:
+  bindAddress: 127.0.0.1:8080
+webhook:
+  port: 9443
+leaderElection:
+  leaderElect: true
+  resourceName: 644757cd.w6d.io
+images:
+  mongodb: 'bitnami/mongodb'
+  tls: 'bitnami/nginx:1.19.8-debian-10-r9'
+  metrics: 'bitnami/mongodb-exporter:0.11.2-debian-10-r114'

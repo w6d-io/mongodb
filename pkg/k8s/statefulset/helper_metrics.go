@@ -69,7 +69,8 @@ func getMetricsContainers(ctx context.Context, r client.Client, mongoDB *db.Mong
 func getMetricsURL(ctx context.Context, r client.Client, mongoDB *db.MongoDB) string {
 	log := util.GetLog(ctx, mongoDB)
 	log.V(1).Info("get root password for metric request")
-	password := secret.GetContentFromKey(ctx, r, mongoDB.Name, MongoRootPasswordKey)
+	name := util.GetTypesNamespaceNamed(ctx, mongoDB)
+	password := secret.GetContentFromKey(ctx, r, name.String(), MongoRootPasswordKey)
 	return fmt.Sprintf("mongodb://root:%slocalhost:%d/admin?%s",
 		util.EscapePassword(password), MongoContainerPort, getTLSMetricsArgs(mongoDB))
 }

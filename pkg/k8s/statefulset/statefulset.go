@@ -33,7 +33,7 @@ import (
 func CreateUpdate(ctx context.Context, r client.Client, scheme *runtime.Scheme, mongoDB *db.MongoDB) error {
 	log := util.GetLog(ctx, mongoDB)
 	if err := retry.Do(func() error {
-		if !secret.IsKeyExist(ctx, r, util.GetSecretKeySelector(mongoDB.Name, MongoRootPasswordKey)) {
+		if !secret.IsKeyExist(ctx, r, util.GetSecretKeySelector(util.GetTypesNamespaceNamed(ctx, mongoDB).String(), MongoRootPasswordKey)) {
 			log.Error(nil, "Secret mongodb-root-password key does not exists")
 			return &Error{
 				Cause:  nil,

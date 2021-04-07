@@ -29,9 +29,10 @@ import (
 // MongoDBSpec defines the desired state of MongoDB
 type MongoDBSpec struct {
 	// Version of MongoDB
-	Version string `json:"version"`
+	Version string `json:"version,omitempty"`
 
 	// Replicas number of instance
+	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Storage spec for persistence
