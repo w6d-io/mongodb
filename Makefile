@@ -88,17 +88,20 @@ test: manifests generate fmt vet ## Run tests.
 
 ##@ Build
 
-build: generate fmt vet ## Build manager binary.
+build: generate fmt vet vendor ## Build manager binary.
 	go build -o bin/mongodb main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go -config config/tests/config.yaml
+	go run ./main.go -config config/tests/config.yaml -log-format text
 
 docker-build: test ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
+
+vendor:
+	go mod vendor
 
 ##@ Deployment
 
