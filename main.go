@@ -110,16 +110,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "MongoDB")
 		os.Exit(1)
 	}
-
-	if err = (&controllers.UserReconciler{
+	if err = (&controllers.MongoDBUserReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("User"),
+		Log:    ctrl.Log.WithName("controllers").WithName("MongoDBUser"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "User")
+		setupLog.Error(err, "unable to create controller", "controller", "MongoDBUser")
 		os.Exit(1)
 	}
-
 	//+kubebuilder:scaffold:builder
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
 		if err = (&dbv1alpha1.MongoDB{}).SetupWebhookWithManager(mgr); err != nil {

@@ -15,4 +15,13 @@ resources:
   kind: MongoDB
   path: github.com/w6d-io/mongodb/api/v1alpha1
   version: v1alpha1
-version: "2"
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: w6d.io
+  group: db
+  kind: MongoDBUser
+  path: github.com/w6d-io/mongodb/api/v1alpha1
+  version: v1alpha1
+version: "3"

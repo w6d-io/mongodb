@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"k8s.io/client-go/tools/cache"
 	"math/rand"
 	"strings"
 
@@ -131,9 +132,16 @@ func GetTypesNamespaceNamed(ctx context.Context, object runtime.Object) types.Na
 	return types.NamespacedName{Name: o.GetName(), Namespace: o.GetNamespace()}
 }
 
-func GetTypesNamespacedNameFromString(namespacedName string) types.NamespacedName {
-	name := strings.SplitN(namespacedName, "/", 2)
-	return types.NamespacedName{Name: name[1], Namespace: name[0]}
+func GetTypesNamespacedNameFromString(namespacedName string, defaultNamespace string) types.NamespacedName {
+	name, namespace, err := cache.SplitMetaNamespaceKey(namespacedName)
+	if err != nil {
+		ctrl.Log.Error(err, "split namespacedName failed")
+		return types.NamespacedName{Name: namespacedName, Namespace: defaultNamespace}
+	}
+	if namespace == "" {
+		namespace = defaultNamespace
+	}
+	return types.NamespacedName{Name: name, Namespace: namespace}
 }
 
 func GetLog(ctx context.Context, obj runtime.Object) logr.Logger {

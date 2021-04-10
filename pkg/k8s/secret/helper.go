@@ -26,10 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 // GetContentFromKeySelector Get Secret content and decode
@@ -42,10 +40,7 @@ func GetContentFromKeySelector(ctx context.Context, r client.Client, c *corev1.S
 		return ""
 	}
 	secret := &corev1.Secret{}
-	o := types.NamespacedName{Name: c.Name, Namespace: config.GetNamespace()}
-	if strings.Contains(c.Name, "/") {
-		o = util.GetTypesNamespacedNameFromString(c.Name)
-	}
+	o := util.GetTypesNamespacedNameFromString(c.Name,config.GetNamespace())
 	log.V(1).Info("get types namespaced Name", "object", o)
 	err := r.Get(ctx, o, secret)
 	if err != nil {
@@ -85,10 +80,7 @@ func IsKeyExist(ctx context.Context, r client.Client, c *corev1.SecretKeySelecto
 	log := ctrl.Log.WithValues("correlation_id", correlationID, "name", c.Name, "key", c.Key)
 	secret := &corev1.Secret{}
 
-	o := types.NamespacedName{Name: c.Name, Namespace: config.GetNamespace()}
-	if strings.Contains(c.Name, "/") {
-		o = util.GetTypesNamespacedNameFromString(c.Name)
-	}
+	o := util.GetTypesNamespacedNameFromString(c.Name,config.GetNamespace())
 	log.V(1).Info("get types namespaced Name", "object", o)
 	err := r.Get(ctx, o, secret)
 	if err != nil && errors.IsNotFound(err) {

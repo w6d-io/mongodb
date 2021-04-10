@@ -76,6 +76,7 @@ type MongoDBUserStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:path=mongodbusers,singular=mongodbuser,shortName=mgu
 //+kubebuilder:printcolumn:name="Instance",type="string",JSONPath=".spec.mongo
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
