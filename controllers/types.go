@@ -15,3 +15,7 @@ limitations under the License.
 Created on 10/04/2021
 */
 package controllers
+
+const (
+	FinalizerName string = "db.w6d.io/finalizer"
+)

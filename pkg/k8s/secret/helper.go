@@ -18,43 +18,38 @@ package secret
 
 import (
 	"context"
-	"encoding/base64"
-	db "github.com/w6d-io/mongodb/api/v1alpha1"
 	"github.com/w6d-io/mongodb/internal/config"
 	"github.com/w6d-io/mongodb/internal/util"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	db "github.com/w6d-io/mongodb/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // GetContentFromKeySelector Get Secret content and decode
 func GetContentFromKeySelector(ctx context.Context, r client.Client, c *corev1.SecretKeySelector) string {
 	correlationID := ctx.Value("correlation_id")
-	log := ctrl.Log.WithValues("correlation_id", correlationID, "name", c.Name, "key", c.Key)
-
+	log := ctrl.Log.WithValues("correlation_id", correlationID)
 	if r == nil || c == nil {
 		log.V(1).Info("k8s client or configmap key is nil")
 		return ""
 	}
+	log = log.WithValues("name", c.Name, "key", c.Key)
 	secret := &corev1.Secret{}
-	o := util.GetTypesNamespacedNameFromString(c.Name,config.GetNamespace())
+	o := util.GetTypesNamespacedNameFromString(c.Name, config.GetNamespace())
 	log.V(1).Info("get types namespaced Name", "object", o)
 	err := r.Get(ctx, o, secret)
 	if err != nil {
 		log.Error(err, "get secret")
 		return ""
 	}
-	encryptedContent, ok := secret.Data[c.Key]
+	content, ok := secret.Data[c.Key]
 	if !ok {
 		log.Error(nil, "no such element in configmap")
-		return ""
-	}
-	content, err := base64.StdEncoding.DecodeString(string(encryptedContent))
-	if err != nil {
-		log.V(1).Error(err, "decode secret failed")
 		return ""
 	}
 	return string(content)
@@ -73,14 +68,14 @@ func GetContentFromKey(ctx context.Context, r client.Client, name, key string) s
 }
 
 func IsKeyExist(ctx context.Context, r client.Client, c *corev1.SecretKeySelector) bool {
-	correlationID := ctx.Value("correlation_id")
 	if r == nil || c == nil {
 		return false
 	}
+	correlationID := ctx.Value("correlation_id")
 	log := ctrl.Log.WithValues("correlation_id", correlationID, "name", c.Name, "key", c.Key)
 	secret := &corev1.Secret{}
 
-	o := util.GetTypesNamespacedNameFromString(c.Name,config.GetNamespace())
+	o := util.GetTypesNamespacedNameFromString(c.Name, config.GetNamespace())
 	log.V(1).Info("get types namespaced Name", "object", o)
 	err := r.Get(ctx, o, secret)
 	if err != nil && errors.IsNotFound(err) {

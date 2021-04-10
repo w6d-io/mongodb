@@ -15,3 +15,35 @@ limitations under the License.
 Created on 10/04/2021
 */
 package mongodb
+
+import (
+	"context"
+	"fmt"
+	db "github.com/w6d-io/mongodb/api/v1alpha1"
+	"github.com/w6d-io/mongodb/pkg/k8s/secret"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+func GetClient(ctx context.Context, r client.Client, mongoDB *db.MongoDB) (*mongo.Client, error) {
+	password := secret.GetContentFromKey(ctx, r, mongoDB.Name, secret.MongoRootPasswordKey)
+	credential := options.Credential{
+		AuthMechanism: "PLAIN",
+		Username:      "root",
+		Password:      password,
+	}
+	URL := fmt.Sprintf("mongodb://%s", GetService(mongoDB))
+	opts := options.Client().ApplyURI(URL).SetAuth(credential)
+	c, err := mongo.Connect(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+
+}
+
+// GetService return the service of mongodb
+func GetService(mongoDB *db.MongoDB) string {
+	return fmt.Sprintf("%s.%s:%d", mongoDB.Name, mongoDB.Namespace, 27017)
+}

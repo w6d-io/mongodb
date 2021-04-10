@@ -20,17 +20,12 @@ package v1alpha1
 type MongoDBPhase string
 
 const (
-	MongoDBPort = 27017
-
+	// Database
+	MongoDBPort                           = 27017
 	MongoDBPhaseProvisioning MongoDBPhase = "Provisioning"
-
-	MongoDBPhaseRestoring MongoDBPhase = "Restoring"
-
-	MongoDBPhaseReady MongoDBPhase = "Ready"
-
-	MongoDBPhaseCritical MongoDBPhase = "Critical"
-
-	MongoDBPhaseNotReady MongoDBPhase = "NotReady"
-
-	MongoDBPhasePaused MongoDBPhase = "Paused"
+	MongoDBPhaseRestoring    MongoDBPhase = "Restoring"
+	MongoDBPhaseReady        MongoDBPhase = "Ready"
+	MongoDBPhaseCritical     MongoDBPhase = "Critical"
+	MongoDBPhaseNotReady     MongoDBPhase = "NotReady"
+	MongoDBPhasePaused       MongoDBPhase = "Paused"
 )

@@ -15,3 +15,113 @@ limitations under the License.
 Created on 10/04/2021
 */
 package user
+
+import (
+	"context"
+	"errors"
+	"github.com/w6d-io/mongodb/internal/mongodb"
+	"github.com/w6d-io/mongodb/internal/util"
+	"github.com/w6d-io/mongodb/pkg/k8s/secret"
+	"go.mongodb.org/mongo-driver/bson"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	db "github.com/w6d-io/mongodb/api/v1alpha1"
+)
+
+func Create(ctx context.Context, r client.Client, user *db.MongoDBUser) error {
+	log := util.GetLog(ctx, user).WithName("Create")
+	log.V(1).Info("create MongoDB user")
+	mdb, err := GetMongoDB(ctx, r, types.NamespacedName{Namespace: user.Namespace, Name: user.Spec.DBRef.Name})
+	if err != nil {
+		log.Error(err, "get MongoDB failed")
+		return err
+	}
+	c, err := mongodb.GetClient(ctx, r, mdb)
+	if err != nil {
+		log.Error(err, "get MongoDB client")
+		return err
+	}
+	if err = c.Ping(ctx, nil); err != nil {
+		log.Error(err, "ping db failed")
+		return err
+	}
+	passwd := GetUserPassword(ctx, r, user)
+	if passwd == "" {
+		log.Error(nil, "password cannot be empty")
+		return errors.New("password cannot be empty")
+	}
+	for _, priv := range user.Spec.Privileges {
+		d := c.Database("admin")
+		res := d.RunCommand(ctx, bson.D{
+			{Key: "createUser", Value: user.Spec.Username},
+			{Key: "pwd", Value: passwd},
+			{Key: "roles", Value: []bson.M{{"role": priv.Permission, "db": priv.DatabaseName}}},
+		})
+		if res.Err() != nil {
+			log.Error(err, "create user failed")
+			return err
+		}
+	}
+	return nil
+}
+
+func Delete(ctx context.Context, r client.Client, user *db.MongoDBUser) error {
+	log := util.GetLog(ctx, user).WithName("Delete")
+	log.V(1).Info("delete MongoDB user")
+	mdb, err := GetMongoDB(ctx, r, types.NamespacedName{Namespace: user.Namespace, Name: user.Spec.DBRef.Name})
+	if err != nil {
+		log.Error(err, "get MongoDB failed")
+		return err
+	}
+	c, err := mongodb.GetClient(ctx, r, mdb)
+	if err != nil {
+		log.Error(err, "get MongoDB client")
+		return err
+	}
+	if err = c.Ping(ctx, nil); err != nil {
+		log.Error(err, "ping db failed")
+		return err
+	}
+	passwd := GetUserPassword(ctx, r, user)
+	if passwd == "" {
+		log.Error(nil, "password cannot be empty")
+		return errors.New("password cannot be empty")
+	}
+	for _, priv := range user.Spec.Privileges {
+		d := c.Database(priv.DatabaseName)
+		res := d.RunCommand(ctx, bson.D{
+			{Key: "dropUser", Value: user.Spec.Username}})
+		if res.Err() != nil {
+			log.Error(err, "delete user failed")
+			return err
+		}
+	}
+	return nil
+}
+
+func GetMongoDB(ctx context.Context, r client.Client, name types.NamespacedName) (*db.MongoDB, error) {
+	correlationID := ctx.Value("correlation_id")
+	log := ctrl.Log.WithValues("correlation_id", correlationID, "object", name.String())
+	_ = &db.MongoDB{}
+	if err := r.Get(ctx, name, nil); err != nil {
+		log.Error(err, "get MongoDB failed")
+		return nil, err
+	}
+	return nil, nil
+}
+
+func GetUserPassword(ctx context.Context, r client.Client, user *db.MongoDBUser) string {
+	if user.Spec.Password.Value != nil {
+		return *user.Spec.Password.Value
+	}
+	if user.Spec.Password.ValueFrom == nil {
+		return ""
+	}
+	return secret.GetContentFromKey(
+		ctx,
+		r,
+		user.Spec.Password.ValueFrom.SecretKeyRef.Name,
+		user.Spec.Password.ValueFrom.SecretKeyRef.Key)
+}

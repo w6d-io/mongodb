@@ -63,13 +63,6 @@ func GetConfigMapKeySelector(name, key string) *corev1.ConfigMapKeySelector {
 	}
 }
 
-// GetLocalObjectReference return LocalObjectReference
-func GetLocalObjectReference(name string) corev1.LocalObjectReference {
-	return corev1.LocalObjectReference{
-		Name: name,
-	}
-}
-
 // EscapePassword return the password by replacing `@` and `:` with html encoding
 func EscapePassword(password string) string {
 	password = strings.Replace(password, "@", "%40", -1)
@@ -133,7 +126,7 @@ func GetTypesNamespaceNamed(ctx context.Context, object runtime.Object) types.Na
 }
 
 func GetTypesNamespacedNameFromString(namespacedName string, defaultNamespace string) types.NamespacedName {
-	name, namespace, err := cache.SplitMetaNamespaceKey(namespacedName)
+	namespace, name, err := cache.SplitMetaNamespaceKey(namespacedName)
 	if err != nil {
 		ctrl.Log.Error(err, "split namespacedName failed")
 		return types.NamespacedName{Name: namespacedName, Namespace: defaultNamespace}

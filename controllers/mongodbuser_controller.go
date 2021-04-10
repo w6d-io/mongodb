@@ -19,15 +19,16 @@ package controllers
 import (
 	"context"
 	"github.com/google/uuid"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	"github.com/w6d-io/mongodb/pkg/controllers/mongodb/user"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	db "github.com/w6d-io/mongodb/api/v1alpha1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // MongoDBUserReconciler reconciles a MongoDBUser object
@@ -48,13 +49,45 @@ func (r *MongoDBUserReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	log := logger.WithName("Reconcile")
 	var err error
 
-	usr := db.MongoDBUser{}
+	usr := &db.MongoDBUser{}
 	if err = r.Get(ctx, req.NamespacedName, usr); err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("User ")
+			return ctrl.Result{}, nil
+		}
+		log.Error(err, "failed to get MongoDB User")
+		return ctrl.Result{}, err
+	}
+
+	if usr.GetDeletionTimestamp() != nil {
+		if controllerutil.ContainsFinalizer(usr, FinalizerName) {
+			if err = user.Delete(ctx, r.Client, usr); err != nil && !errors.IsNotFound(err) {
+				log.Error(err, "delete MongoDB user failed")
+				return ctrl.Result{}, err
+			}
+		}
+
+		controllerutil.RemoveFinalizer(usr, FinalizerName)
+		if err = r.Update(ctx, usr); err != nil {
+			log.Error(err, "remove finalizer")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if !controllerutil.ContainsFinalizer(usr, FinalizerName) {
+		controllerutil.AddFinalizer(usr, FinalizerName)
+		if err = r.Update(ctx, usr); err != nil {
+			log.Error(err, "add finalizer")
+			return ctrl.Result{}, err
 		}
 	}
 
+	if err = user.Create(ctx, r.Client, usr); err != nil {
+		// TODO: if err returned is a non exist maybe return nil
+		log.Error(err, "create MongoDB user")
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
 }
 

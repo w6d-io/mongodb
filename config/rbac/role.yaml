@@ -107,7 +107,7 @@ rules:
 - apiGroups:
   - db.w6d.io
   resources:
-  - users
+  - mongodbusers
   verbs:
   - create
   - delete
@@ -119,13 +119,13 @@ rules:
 - apiGroups:
   - db.w6d.io
   resources:
-  - users/finalizers
+  - mongodbusers/finalizers
   verbs:
   - update
 - apiGroups:
   - db.w6d.io
   resources:
-  - users/status
+  - mongodbusers/status
   verbs:
   - get
   - patch

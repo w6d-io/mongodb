@@ -32,7 +32,7 @@ var (
 	}
 )
 
-func Create(mongoDB *MongoDB) error {
+func DBCreate(mongoDB *MongoDB) error {
 	var allErrs field.ErrorList
 	for _, accessMode := range mongoDB.Spec.Storage.AccessModes {
 		if !util.StringInArray(string(accessMode), AccessModes) {
@@ -50,7 +50,7 @@ func Create(mongoDB *MongoDB) error {
 		mongoDB.Name, allErrs)
 }
 
-func Update(old, new *MongoDB) error {
+func DBUpdate(old, new *MongoDB) error {
 	var allErrs field.ErrorList
 	if len(old.Spec.Storage.AccessModes) != len(new.Spec.Storage.AccessModes) {
 		allErrs = append(allErrs,
@@ -74,4 +74,108 @@ func Update(old, new *MongoDB) error {
 	return apierrors.NewInvalid(
 		schema.GroupKind{Group: "db.w6d.io", Kind: "MongoDB"},
 		old.Name, allErrs)
+}
+
+func DBUserCreate(usr *MongoDBUser) error {
+	var allErrs field.ErrorList
+	if usr.Spec.DBRef == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("dbref"),
+				usr.Spec.DBRef,
+				"it should be set by the mongodb instance name in the same namespace",
+			))
+	}
+	if usr.Spec.Username == "" {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("username"),
+				usr.Spec.Username,
+				"username must be set",
+			))
+	}
+	if usr.Spec.Password.Value == nil && usr.Spec.Password.ValueFrom == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("password"),
+				nil,
+				"password must be set",
+			))
+	}
+	if usr.Spec.Password.Value != nil && usr.Spec.Password.ValueFrom != nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("password"),
+				nil,
+				"value and valueFrom cannot be set in the same time",
+			))
+	}
+	if len(usr.Spec.Privileges) == 0 {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("privilege"),
+				nil,
+				"privilege must be set",
+			))
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(
+		schema.GroupKind{Group: "db.w6d.io", Kind: "MongoDBUser"},
+		usr.Name, allErrs)
+}
+
+func DBUserUpdate(old, usr *MongoDBUser) error {
+	var allErrs field.ErrorList
+
+	if usr.Spec.DBRef == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("dbref"),
+				usr.Spec.DBRef,
+				"it should be set by the mongodb instance name in the same namespace",
+			))
+	}
+	if usr.Spec.DBRef != nil && *old.Spec.DBRef != *usr.Spec.DBRef {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("dbref"),
+				usr.Spec.DBRef,
+				"dbref is immutable",
+			))
+	}
+
+	if usr.Spec.Username == "" {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("username"),
+				usr.Spec.Username,
+				"username must be set",
+			))
+	}
+	if usr.Spec.Username != "" && old.Spec.Username != usr.Spec.Username {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("username"),
+				usr.Spec.Username,
+				"username is immutable",
+			))
+	}
+	if usr.Spec.Password.Value == nil && usr.Spec.Password.ValueFrom == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("password"),
+				nil,
+				"password must be set",
+			))
+	}
+	if usr.Spec.Password.Value != nil && usr.Spec.Password.ValueFrom != nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("password"),
+				nil,
+				"value and valueFrom cannot be set in the same time",
+			))
+	}
+	if len(usr.Spec.Privileges) == 0 {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("privilege"),
+				nil,
+				"privilege must be set",
+			))
+	}
+	return apierrors.NewInvalid(
+		schema.GroupKind{Group: "db.w6d.io", Kind: "MongoDBUser"},
+		usr.Name, allErrs)
 }

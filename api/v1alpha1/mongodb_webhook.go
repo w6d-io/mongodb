@@ -18,9 +18,10 @@ package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 // log is for logging in this package.
@@ -50,7 +51,6 @@ func (in *MongoDB) Default() {
 	}
 }
 
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 // +kubebuilder:webhook:verbs=create;update;delete,path=/validate-db-w6d-io-v1alpha1-mongodb,mutating=false,failurePolicy=fail,admissionReviewVersions=v1;v1beta1,sideEffects=None,groups=db.w6d.io,resources=mongodbs,versions=v1alpha1,name=validate.mongodb.db.w6d.io
 
 var _ webhook.Validator = &MongoDB{}
@@ -58,22 +58,19 @@ var _ webhook.Validator = &MongoDB{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (in *MongoDB) ValidateCreate() error {
 	mongodblog.Info("validate create", "name", in.Name)
-
-	return Create(in)
+	return DBCreate(in)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (in *MongoDB) ValidateUpdate(old runtime.Object) error {
 	mongodblog.Info("validate update", "name", in.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
-	return Update(old.(*MongoDB), in)
+	return DBUpdate(old.(*MongoDB), in)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (in *MongoDB) ValidateDelete() error {
 	mongodblog.Info("validate delete", "name", in.Name)
 
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil
 }

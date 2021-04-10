@@ -1,0 +1,131 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: mongodbusers.db.w6d.io
+spec:
+  group: db.w6d.io
+  names:
+    kind: MongoDBUser
+    listKind: MongoDBUserList
+    plural: mongodbusers
+    shortNames:
+    - mgu
+    singular: mongodbuser
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.dbref
+      name: Instance
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: MongoDBUser is the Schema for the mongodbusers API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MongoDBUserSpec defines the desired state of MongoDBUser
+            properties:
+              dbref:
+                description: MongoDBRef represents the reference to the mongoDB instance
+                  for the user
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+              password:
+                description: Password is the password associated to the user
+                properties:
+                  value:
+                    description: Value represents a raw value
+                    type: string
+                  valueFrom:
+                    description: ValueFrom represent a value from a secret
+                    properties:
+                      secretKeyRef:
+                        description: SecretKeyRef selects a key of secret in the same
+                          namespace where password's user is set
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                    type: object
+                type: object
+              privileges:
+                description: Privileges
+                items:
+                  description: Privilege defines a link to MongoDB
+                  properties:
+                    databaseName:
+                      description: DatabaseName is the name to a MongoDB Database
+                        for this privilege
+                      type: string
+                    permission:
+                      description: Permission is the given permission for this privilege
+                      enum:
+                      - read
+                      - readWrite
+                      - dbAdmin
+                      - dbOwner
+                      - userAdmin
+                      - root
+                      type: string
+                  required:
+                  - permission
+                  type: object
+                type: array
+              username:
+                description: Username is the user name to be create on the MongoDB
+                  Instance
+                type: string
+            required:
+            - dbref
+            - privileges
+            type: object
+          status:
+            description: MongoDBUserStatus defines the observed state of MongoDBUser
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -33,12 +33,11 @@ type MongoDBUserSpec struct {
 	Password Password `json:"password,omitempty"`
 
 	// Privileges
-	Privileges []Privilege `json:"privileges, omitempty"`
+	Privileges []Privilege `json:"privileges,omitempty"`
 
 	// MongoDBRef represents the reference to the mongoDB instance for the user
-	DBRef corev1.LocalObjectReference `json:"DbRef"`
+	DBRef *corev1.LocalObjectReference `json:"dbref"`
 }
-
 
 // Password defines the password of the MongoDB
 // One of Value or ValueFrom
@@ -63,10 +62,10 @@ type Privilege struct {
 	// Permission is the given permission for this privilege
 	Permission Permission `json:"permission"`
 }
+
 // Permission define the permission for a privilege
 // +kubebuilder:validation:Enum=read;readWrite;dbAdmin;dbOwner;userAdmin;root
 type Permission string
-
 
 // MongoDBUserStatus defines the observed state of MongoDBUser
 type MongoDBUserStatus struct {
@@ -77,7 +76,8 @@ type MongoDBUserStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:path=mongodbusers,singular=mongodbuser,shortName=mgu
-//+kubebuilder:printcolumn:name="Instance",type="string",JSONPath=".spec.mongo
+//+kubebuilder:printcolumn:name="Username",type="string",JSONPath=".spec.username"
+//+kubebuilder:printcolumn:name="Instance",priority=1,type="string",JSONPath=".spec.dbref"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // MongoDBUser is the Schema for the mongodbusers API
