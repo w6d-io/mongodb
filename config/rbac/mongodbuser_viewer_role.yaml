@@ -1,0 +1,20 @@
+# permissions for end users to view mongodbusers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mongodbuser-viewer-role
+rules:
+- apiGroups:
+  - db.w6d.io
+  resources:
+  - mongodbusers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - db.w6d.io
+  resources:
+  - mongodbusers/status
+  verbs:
+  - get

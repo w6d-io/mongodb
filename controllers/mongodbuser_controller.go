@@ -27,28 +27,28 @@ import (
 	dbv1alpha1 "github.com/w6d-io/mongodb/api/v1alpha1"
 )
 
-// UserReconciler reconciles a User object
-type UserReconciler struct {
+// MongoDBUserReconciler reconciles a MongoDBUser object
+type MongoDBUserReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=db.w6d.io,resources=users,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=db.w6d.io,resources=users/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=db.w6d.io,resources=users/finalizers,verbs=update
+//+kubebuilder:rbac:groups=db.w6d.io,resources=mongodbusers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=db.w6d.io,resources=mongodbusers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=db.w6d.io,resources=mongodbusers/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the User object against the actual cluster state, and then
+// the MongoDBUser object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
-func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("user", req.NamespacedName)
+func (r *MongoDBUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	_ = r.Log.WithValues("mongodbuser", req.NamespacedName)
 
 	// your logic here
 
@@ -56,8 +56,8 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *MongoDBUserReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&dbv1alpha1.User{}).
+		For(&dbv1alpha1.MongoDBUser{}).
 		Complete(r)
 }
