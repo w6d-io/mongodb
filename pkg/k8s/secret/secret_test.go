@@ -226,7 +226,7 @@ var _ = Describe("Secret", func() {
 			}
 			err = secret.Create(ctx, k8sClient, scheme, mongodb)
 			Expect(err).ToNot(Succeed())
-			Expect(err.Error()).To(ContainSubstring("invalid resource name"))
+			Expect(err.Error()).To(ContainSubstring("fail to  create secret : namespaces \"test\" not found"))
 		})
 		It("success", func() {
 			var err error

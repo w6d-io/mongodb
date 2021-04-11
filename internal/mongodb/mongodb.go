@@ -45,5 +45,5 @@ func GetClient(ctx context.Context, r client.Client, mongoDB *db.MongoDB) (*mong
 
 // GetService return the service of mongodb
 func GetService(mongoDB *db.MongoDB) string {
-	return fmt.Sprintf("%s.%s:%d", mongoDB.Name, mongoDB.Namespace, 27017)
+	return fmt.Sprintf("%s.%s:%d", mongoDB.Name, mongoDB.Namespace, db.MongoDBPort)
 }

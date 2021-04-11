@@ -27,6 +27,27 @@ webhooks:
     resources:
     - mongodbs
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-db-w6d-io-v1alpha1-mongodbuser
+  failurePolicy: Fail
+  name: mutate.mongodbuser.db.w6d.io
+  rules:
+  - apiGroups:
+    - db.w6d.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - mongodbusers
+  sideEffects: None
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -56,4 +77,26 @@ webhooks:
     - DELETE
     resources:
     - mongodbs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-db-w6d-io-v1alpha1-mongodbuser
+  failurePolicy: Fail
+  name: validate.mongodbuser.db.w6d.io
+  rules:
+  - apiGroups:
+    - db.w6d.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - mongodbusers
   sideEffects: None

@@ -21,9 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // MongoDBUserSpec defines the desired state of MongoDBUser
 type MongoDBUserSpec struct {
 	// Username is the user name to be create on the MongoDB Instance
@@ -69,8 +66,6 @@ type Permission string
 
 // MongoDBUserStatus defines the observed state of MongoDBUser
 type MongoDBUserStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
 //+kubebuilder:object:root=true

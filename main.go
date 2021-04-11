@@ -81,6 +81,7 @@ func main() {
 	opts := zap.Options{
 		Development:     os.Getenv("RELEASE") != "prod",
 		StacktraceLevel: zapcore.PanicLevel,
+		Encoder:         zapcore.NewConsoleEncoder(util.TextEncoderConfig()),
 	}
 	//opts.BindFlags(flag.CommandLine)
 	config.BindFlag(flag.CommandLine)
@@ -122,6 +123,10 @@ func main() {
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
 		if err = (&dbv1alpha1.MongoDB{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MongoDB")
+			os.Exit(1)
+		}
+		if err = (&dbv1alpha1.MongoDBUser{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MongoDBUser")
 			os.Exit(1)
 		}
 	}

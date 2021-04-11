@@ -103,16 +103,20 @@ func Delete(ctx context.Context, r client.Client, user *db.MongoDBUser) error {
 
 func GetMongoDB(ctx context.Context, r client.Client, name types.NamespacedName) (*db.MongoDB, error) {
 	correlationID := ctx.Value("correlation_id")
-	log := ctrl.Log.WithValues("correlation_id", correlationID, "object", name.String())
-	_ = &db.MongoDB{}
-	if err := r.Get(ctx, name, nil); err != nil {
+	log := ctrl.Log.WithValues("correlation_id", correlationID, "object", name.String()).WithName("GetMongoDB")
+	log.V(1).Info("get")
+	mongoDB := &db.MongoDB{}
+	if err := r.Get(ctx, name, mongoDB); err != nil {
 		log.Error(err, "get MongoDB failed")
 		return nil, err
 	}
-	return nil, nil
+	return mongoDB, nil
 }
 
 func GetUserPassword(ctx context.Context, r client.Client, user *db.MongoDBUser) string {
+	correlationID := ctx.Value("correlation_id")
+	log := ctrl.Log.WithValues("correlation_id", correlationID).WithName("GetUserPassword")
+	log.V(1).Info("get")
 	if user.Spec.Password.Value != nil {
 		return *user.Spec.Password.Value
 	}
@@ -122,6 +126,6 @@ func GetUserPassword(ctx context.Context, r client.Client, user *db.MongoDBUser)
 	return secret.GetContentFromKey(
 		ctx,
 		r,
-		user.Spec.Password.ValueFrom.SecretKeyRef.Name,
+		user.Namespace+"/"+user.Spec.Password.ValueFrom.SecretKeyRef.Name,
 		user.Spec.Password.ValueFrom.SecretKeyRef.Key)
 }

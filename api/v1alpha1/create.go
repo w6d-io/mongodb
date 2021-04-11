@@ -175,6 +175,9 @@ func DBUserUpdate(old, usr *MongoDBUser) error {
 				"privilege must be set",
 			))
 	}
+	if len(allErrs) == 0 {
+		return nil
+	}
 	return apierrors.NewInvalid(
 		schema.GroupKind{Group: "db.w6d.io", Kind: "MongoDBUser"},
 		usr.Name, allErrs)

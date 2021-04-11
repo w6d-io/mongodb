@@ -20,6 +20,7 @@ import (
 	"context"
 	"github.com/w6d-io/mongodb/internal/util"
 	"github.com/w6d-io/mongodb/pkg/k8s/secret"
+	"github.com/w6d-io/mongodb/pkg/k8s/service"
 	"github.com/w6d-io/mongodb/pkg/k8s/statefulset"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,6 +45,11 @@ func CreateUpdate(ctx context.Context, r client.Client, scheme *runtime.Scheme, 
 	err = statefulset.CreateUpdate(ctx, r, scheme, mongoDB)
 	if err != nil {
 		log.Error(err, "statefulSet processing failed")
+		return err
+	}
+	err = service.Create(ctx, r, scheme, mongoDB)
+	if err != nil {
+		log.Error(err, "service processing failed")
 		return err
 	}
 	return nil

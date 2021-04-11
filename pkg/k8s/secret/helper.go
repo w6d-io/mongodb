@@ -41,7 +41,7 @@ func GetContentFromKeySelector(ctx context.Context, r client.Client, c *corev1.S
 	log = log.WithValues("name", c.Name, "key", c.Key)
 	secret := &corev1.Secret{}
 	o := util.GetTypesNamespacedNameFromString(c.Name, config.GetNamespace())
-	log.V(1).Info("get types namespaced Name", "object", o)
+	log.V(1).Info("get types namespaced Name", "object", o.String())
 	err := r.Get(ctx, o, secret)
 	if err != nil {
 		log.Error(err, "get secret")
