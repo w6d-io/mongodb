@@ -22,9 +22,12 @@ spec:
     - jsonPath: .spec.username
       name: Username
       type: string
-    - jsonPath: .spec.dbref
+    - jsonPath: .spec.dbref.name
       name: Instance
       priority: 1
+      type: string
+    - jsonPath: .status.status
+      name: Status
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -120,6 +123,10 @@ spec:
             type: object
           status:
             description: MongoDBUserStatus defines the observed state of MongoDBUser
+            properties:
+              status:
+                description: Status of the account against mongodb instance
+                type: string
             type: object
         type: object
     served: true

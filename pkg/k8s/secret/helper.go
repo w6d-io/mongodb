@@ -33,7 +33,7 @@ import (
 // GetContentFromKeySelector Get Secret content and decode
 func GetContentFromKeySelector(ctx context.Context, r client.Client, c *corev1.SecretKeySelector) string {
 	correlationID := ctx.Value("correlation_id")
-	log := ctrl.Log.WithValues("correlation_id", correlationID)
+	log := ctrl.Log.WithValues("correlation_id", correlationID).WithName("Secret").WithName("GetContentFromKeySelector")
 	if r == nil || c == nil {
 		log.V(1).Info("k8s client or configmap key is nil")
 		return ""
@@ -72,7 +72,7 @@ func IsKeyExist(ctx context.Context, r client.Client, c *corev1.SecretKeySelecto
 		return false
 	}
 	correlationID := ctx.Value("correlation_id")
-	log := ctrl.Log.WithValues("correlation_id", correlationID, "name", c.Name, "key", c.Key)
+	log := ctrl.Log.WithValues("correlation_id", correlationID, "name", c.Name, "key", c.Key).WithName("Secret").WithName("IsKeyExist")
 	secret := &corev1.Secret{}
 
 	o := util.GetTypesNamespacedNameFromString(c.Name, config.GetNamespace())

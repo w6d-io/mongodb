@@ -28,4 +28,8 @@ const (
 	MongoDBPhaseCritical     MongoDBPhase = "Critical"
 	MongoDBPhaseNotReady     MongoDBPhase = "NotReady"
 	MongoDBPhasePaused       MongoDBPhase = "Paused"
+
+	// User
+	MongoDBUSerCreated = "Created"
+	MongoDBUserFailed  = "Failed"
 )

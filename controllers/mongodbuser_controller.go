@@ -19,7 +19,9 @@ package controllers
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/w6d-io/mongodb/internal/util"
 	"github.com/w6d-io/mongodb/pkg/controllers/mongodb/user"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/go-logr/logr"
@@ -57,6 +59,9 @@ func (r *MongoDBUserReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, nil
 		}
 		log.Error(err, "failed to get MongoDB User")
+		if err = r.UpdateStatus(ctx, usr, db.MongoDBUserFailed); err != nil {
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -87,9 +92,33 @@ func (r *MongoDBUserReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if err = user.Create(ctx, r.Client, usr); err != nil {
 		// TODO: if err returned is a non exist maybe return nil
 		log.Error(err, "create MongoDB user")
+		if err = r.UpdateStatus(ctx, usr, db.MongoDBUserFailed); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, err
+	}
+	if err = r.UpdateStatus(ctx, usr, db.MongoDBUSerCreated); err != nil {
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+// UpdateStatus set the status of user creation in mongodb
+func (r *MongoDBUserReconciler) UpdateStatus(ctx context.Context, mdu *db.MongoDBUser, state string) error {
+	log := util.GetLog(ctx, mdu)
+	var err error
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		mdu.Status.Status = state
+		if err := r.Status().Update(ctx, mdu); err != nil {
+			log.Error(err, "unable to update MongoDBUser status (retry)")
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

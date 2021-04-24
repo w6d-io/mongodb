@@ -15,3 +15,16 @@ limitations under the License.
 Created on 10/04/2021
 */
 package user
+
+type User struct {
+	User       string     `bson:"user"`
+	CustomData CustomData `bson:"customData"`
+}
+
+type CustomData struct {
+	ParentID string `bson:"parentID"`
+}
+
+type Response struct {
+	Users []User
+}

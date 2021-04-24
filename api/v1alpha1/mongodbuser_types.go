@@ -66,13 +66,17 @@ type Permission string
 
 // MongoDBUserStatus defines the observed state of MongoDBUser
 type MongoDBUserStatus struct {
+	// Status of the account against mongodb instance
+	// +optional
+	Status string `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:path=mongodbusers,singular=mongodbuser,shortName=mgu
 //+kubebuilder:printcolumn:name="Username",type="string",JSONPath=".spec.username"
-//+kubebuilder:printcolumn:name="Instance",priority=1,type="string",JSONPath=".spec.dbref"
+//+kubebuilder:printcolumn:name="Instance",priority=1,type="string",JSONPath=".spec.dbref.name"
+//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // MongoDBUser is the Schema for the mongodbusers API

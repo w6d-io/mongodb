@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	db "github.com/w6d-io/mongodb/api/v1alpha1"
+	"github.com/w6d-io/mongodb/internal/util"
 	"github.com/w6d-io/mongodb/pkg/k8s/secret"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -27,11 +28,13 @@ import (
 )
 
 func GetClient(ctx context.Context, r client.Client, mongoDB *db.MongoDB) (*mongo.Client, error) {
-	password := secret.GetContentFromKey(ctx, r, mongoDB.Name, secret.MongoRootPasswordKey)
+	log := util.GetLog(ctx, mongoDB).WithName("GetClient")
+	log.V(1).Info("create MongoDB client")
+	name := fmt.Sprintf("%s/%s", mongoDB.Namespace, mongoDB.Name)
+	password := secret.GetContentFromKey(ctx, r, name, secret.MongoRootPasswordKey)
 	credential := options.Credential{
-		AuthMechanism: "PLAIN",
-		Username:      "root",
-		Password:      password,
+		Username: "root",
+		Password: password,
 	}
 	URL := fmt.Sprintf("mongodb://%s", GetService(mongoDB))
 	opts := options.Client().ApplyURI(URL).SetAuth(credential)

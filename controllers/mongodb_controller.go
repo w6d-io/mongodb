@@ -149,7 +149,7 @@ func (r *MongoDBReconciler) UpdateStatus(ctx context.Context, mdb *db.MongoDB, s
 			return err
 		}
 		if err := r.Status().Update(ctx, mdb); err != nil {
-			log.Error(err, "unable to update Play status")
+			log.Error(err, "unable to update MongoDB status")
 			return err
 		}
 		return nil
