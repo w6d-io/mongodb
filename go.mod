@@ -15,9 +15,7 @@ require (
 	github.com/onsi/gomega v1.10.2
 	github.com/prometheus/client_golang v1.9.0 // indirect
 	github.com/prometheus/common v0.19.0 // indirect
-	github.com/xdg/scram v1.0.3 // indirect
-	github.com/xdg/stringprep v1.0.3 // indirect
-	go.mongodb.org/mongo-driver v1.1.2
+	go.mongodb.org/mongo-driver v1.5.1
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
