@@ -54,6 +54,9 @@ func getStatefulSetMongoDB(ctx context.Context, r client.Client, scheme *runtime
 					Labels: ls,
 					Annotations: map[string]string{
 						"checksum/configuration": util.AsSha256(mongoDB),
+						"prometheus.io/scrape": "true",
+						"prometheus.io/path": "/metrics/cluster",
+						"prometheus.io/port": "9216",
 					},
 				},
 				Spec: corev1.PodSpec{
