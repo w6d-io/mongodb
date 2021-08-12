@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 Created on 02/04/2021
 */
+
 package configmap
 
 const (
@@ -57,6 +58,7 @@ const (
 `
 	Setup string = `|-
     #!/bin/bash
+    . /opt/bitnami/scripts/mongodb-env.sh
     echo "Advertised Hostname: $MONGODB_ADVERTISED_HOSTNAME"
     if [[ "$MY_POD_NAME" = "%s" ]]; then
         echo "Pod name matches initial primary pod name, configuring node as a primary"
@@ -72,6 +74,7 @@ const (
 `
 	SetupHidden = `|-
     #!/bin/bash
+    . /opt/bitnami/scripts/mongodb-env.sh
     echo "Advertised Hostname: $MONGODB_ADVERTISED_HOSTNAME"
     echo "Configuring node as a hidden node"
     export MONGODB_REPLICA_SET_MODE="hidden"
@@ -79,5 +82,26 @@ const (
     export MONGODB_INITIAL_PRIMARY_PORT_NUMBER="$MONGODB_PORT_NUMBER"
     export MONGODB_ROOT_PASSWORD="" MONGODB_USERNAME="" MONGODB_DATABASE="" MONGODB_PASSWORD=""
     exec /opt/bitnami/scripts/mongodb/entrypoint.sh /opt/bitnami/scripts/mongodb/run.sh
-{{- end }}`
+`
+
+	ReplicasetEntrypoint = `
+    #!/bin/bash
+
+    sleep 5
+
+    . /liblog.sh
+
+    # Perform adaptations depending on the host name
+    if [[ $HOSTNAME =~ (.*)-0$ ]]; then
+      info "Setting node as primary"
+      export MONGODB_REPLICA_SET_MODE=primary
+    else
+      info "Setting node as secondary"
+      export MONGODB_REPLICA_SET_MODE=secondary
+      export MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD="$MONGODB_ROOT_PASSWORD"
+      unset MONGODB_ROOT_PASSWORD
+    fi
+
+    exec /entrypoint.sh /run.sh
+`
 )

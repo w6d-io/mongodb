@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 Created on 02/04/2021
 */
+
 package configmap
 
 import (
@@ -50,12 +51,36 @@ func CreateUpdate(ctx context.Context, r client.Client, scheme *runtime.Scheme, 
 	} else if err != nil {
 		log.Error(err, "fail to get configmap")
 		return &Error{Cause: err, Detail: "failed to get configmap"}
+	} else {
+		err = r.Update(ctx, cm)
+		if err != nil {
+			log.Error(err, "fail to update configmap")
+			return &Error{Cause: err, Detail: "fail to update configmap"}
+		}
+	}
+	err = r.Get(ctx, getTypesNamespacedNameReplicaset(mongoDB), cm)
+	if err != nil && errors.IsNotFound(err) {
+		cm = getReplicaSetConfigMap(ctx, scheme, mongoDB)
+		if cm == nil {
+			log.Error(nil, "get configmap return nil")
+			return &Error{Cause: nil, Detail: "get configmap return nil"}
+		}
+		err = r.Create(ctx, cm)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			log.Error(err, "fail to create configmap")
+			return &Error{Cause: err, Detail: "fail to create configmap"}
+		}
+		return nil
+	} else if err != nil {
+		log.Error(err, "fail to get configmap")
+		return &Error{Cause: err, Detail: "failed to get configmap"}
 	}
 	err = r.Update(ctx, cm)
 	if err != nil {
 		log.Error(err, "fail to update configmap")
 		return &Error{Cause: err, Detail: "fail to update configmap"}
 	}
+
 	return nil
 }
 

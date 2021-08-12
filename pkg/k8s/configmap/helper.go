@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 Created on 02/04/2021
 */
+
 package configmap
 
 import (
@@ -56,6 +57,25 @@ func getScriptConfigMap(ctx context.Context, scheme *runtime.Scheme, mongoDB *db
 			"auto-discovery.sh": fmt.Sprintf(AutoDiscovery, mongoDB.Namespace, mongoDB.Namespace),
 			"setup.sh":          fmt.Sprintf(Setup, getFullname(mongoDB)),
 			"setup-hidden.sh":   SetupHidden,
+			"replicaset-entrypoint.sh": ReplicasetEntrypoint,
+		},
+	}
+	if err := ctrl.SetControllerReference(mongoDB, cm, scheme); err != nil {
+		log.Error(err, "set owner failed")
+		return nil
+	}
+	return cm
+}
+func getReplicaSetConfigMap(ctx context.Context, scheme *runtime.Scheme, mongoDB *db.MongoDB) *corev1.ConfigMap {
+	log := util.GetLog(ctx, mongoDB)
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mongoDB.Name + "-replicaset-entrypoint",
+			Namespace: mongoDB.Namespace,
+			Labels:    util.LabelsForMongoDB(mongoDB.Name),
+		},
+		Data: map[string]string{
+			"replicaset-entrypoint.sh": ReplicasetEntrypoint,
 		},
 	}
 	if err := ctrl.SetControllerReference(mongoDB, cm, scheme); err != nil {
@@ -70,4 +90,8 @@ func getFullname(mongoDB *db.MongoDB) string {
 
 func getTypesNamespacedNameScript(mongoDB *db.MongoDB) types.NamespacedName {
 	return types.NamespacedName{Name: mongoDB.Name + "-scripts", Namespace: mongoDB.Namespace}
+}
+
+func getTypesNamespacedNameReplicaset(mongoDB *db.MongoDB) types.NamespacedName {
+	return types.NamespacedName{Name: mongoDB.Name + "-replicaset-entrypoint", Namespace: mongoDB.Namespace}
 }
