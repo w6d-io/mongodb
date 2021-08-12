@@ -165,6 +165,9 @@ func (r *MongoDBReconciler) GetMongoDBStatus(ctx context.Context, mdb *db.MongoD
 	if mdb.Spec.Replicas == nil || *mdb.Spec.Replicas == 0 {
 		return db.MongoDBPhasePaused, nil
 	}
+	if sts.Status.Replicas == 0 {
+		return status[1], nil
+	}
 	for p := 0; p < int(sts.Status.Replicas); p++ {
 		i, err := r.GetPodStatus(ctx, mdb, p)
 		if err != nil {
