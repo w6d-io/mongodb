@@ -16,8 +16,10 @@ Created on 02/04/2021
 */
 package secret
 
+// TODO Move constant to avoid duplicate entries with secret package
 const (
-	MongoRootPasswordKey string = "mongodb-root-password"
+	MongoRootPasswordKey       string = "mongodb-root-password"
+	MongoReplicaSetPasswordKey string = "mongodb-replica-set-key"
 )
 
 type Error struct {

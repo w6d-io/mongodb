@@ -92,20 +92,33 @@ func IsKeyExist(ctx context.Context, r client.Client, c *corev1.SecretKeySelecto
 func getRootSecret(ctx context.Context, scheme *runtime.Scheme, mongoDB *db.MongoDB) *corev1.Secret {
 	log := util.GetLog(ctx, mongoDB).WithName("GetRootSecret")
 
-	passwd := util.GeneratePassword(30, 3, 3, 2)
-	sec := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      mongoDB.Name,
-			Namespace: mongoDB.Namespace,
-			Labels:    util.LabelsForMongoDB(mongoDB.Name),
-		},
-		StringData: map[string]string{
-			MongoRootPasswordKey: passwd,
-		},
-	}
-	if err := ctrl.SetControllerReference(mongoDB, sec, scheme); err != nil {
-		log.Error(err, "set owner failed")
-		return nil
+	sec := &corev1.Secret{}
+	if mongoDB.Spec.AuthSecret != nil {
+		// TODO add label in the secret
+		// TODO check the key
+		sec = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: mongoDB.Spec.AuthSecret.Name,
+				Namespace: mongoDB.Namespace,
+			},
+		}
+	} else {
+		sec = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      mongoDB.Name,
+				Namespace: mongoDB.Namespace,
+				Labels:    util.LabelsForMongoDB(mongoDB.Name),
+			},
+			StringData: map[string]string{
+				MongoRootPasswordKey: util.GeneratePassword(30, 3, 3, 2),
+				MongoReplicaSetPasswordKey: util.GeneratePassword(30, 3, 3, 2),
+			},
+		}
+		if err := ctrl.SetControllerReference(mongoDB, sec, scheme); err != nil {
+			log.Error(err, "set owner failed")
+			return nil
+		}
 	}
 	return sec
 }
+
