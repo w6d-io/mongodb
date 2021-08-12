@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 Created on 01/04/2021
 */
+
 package statefulset
 
 import (
@@ -56,7 +57,7 @@ func getStatefulSetMongoDB(ctx context.Context, r client.Client, scheme *runtime
 						"checksum/configuration": util.AsSha256(mongoDB),
 						"prometheus.io/scrape": "true",
 						"prometheus.io/path": "/metrics/cluster",
-						"prometheus.io/port": "9216",
+						"prometheus.io/port": fmt.Sprintf("%d", MongoContainerMetricsPort),
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -169,7 +170,19 @@ func getEnv(mongoDB *db.MongoDB) []corev1.EnvVar {
 		},
 		{
 			Name:  "MY_POD_NAME",
-			Value: mongoDB.Namespace,
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		{
+			Name:  "MY_POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
 		},
 		{
 			Name:  "K8S_SERVICE_NAME",
@@ -184,11 +197,15 @@ func getEnv(mongoDB *db.MongoDB) []corev1.EnvVar {
 			Value: "rs0",
 		},
 		{
+			Name: "MONGODB_ADVERTISED_HOSTNAME",
+			Value: "$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc",
+		},
+		{
 			Name: "MONGODB_ROOT_PASSWORD",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: mongoDB.Name,
+						Name: getName(mongoDB,mongoDB.Spec.AuthSecret),
 					},
 					Key: MongoRootPasswordKey,
 				},
@@ -211,6 +228,10 @@ func getEnv(mongoDB *db.MongoDB) []corev1.EnvVar {
 			Value: "no",
 		},
 		{
+			Name: "MONGODB_ENABLE_JOURNAL",
+			Value: "yes",
+		},
+		{
 			Name:  "MONGODB_ENABLE_IPV6",
 			Value: "no",
 		},
@@ -218,6 +239,19 @@ func getEnv(mongoDB *db.MongoDB) []corev1.EnvVar {
 			Name:  "MONGODB_ENABLE_DIRECTORY_PER_DB",
 			Value: "no",
 		},
+	}
+	if *mongoDB.Spec.Replicas > 1 {
+		env = append(env, corev1.EnvVar{
+			Name: "MONGODB_REPLICA_SET_KEY",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: getName(mongoDB,mongoDB.Spec.AuthSecret),
+					},
+					Key: MongoReplicaSetPasswordKey,
+				},
+			},
+		})
 	}
 	if tls := AddEnvTLS(mongoDB.Spec.TLS); len(tls) > 0 {
 		env = append(env, tls...)
@@ -367,4 +401,11 @@ func AddVolumeTLS(tlsConfig *k8sdbv1alpha1.TLSConfig) []corev1.Volume {
 		})
 	}
 	return v
+}
+
+func getName(mongoDB *db.MongoDB, reference *corev1.LocalObjectReference) string {
+	if reference != nil {
+		return reference.Name
+	}
+	return mongoDB.Name
 }

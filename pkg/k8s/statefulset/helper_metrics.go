@@ -30,8 +30,8 @@ import (
 func getMetricsContainers(ctx context.Context, r client.Client, mongoDB *db.MongoDB) corev1.Container {
 	log := util.GetLog(ctx, mongoDB)
 	log.V(1).Info("get metrics URL")
-	cmd := `/bin/mongodb_exporter --web.listen-address ":9216" --mongodb.uri "%s"`
-	cmd = fmt.Sprintf(cmd, getMetricsURL(ctx, r, mongoDB))
+	cmd := `/bin/mongodb_exporter --web.listen-address ":%d" --mongodb.uri "%s"`
+	cmd = fmt.Sprintf(cmd, MongoContainerMetricsPort, getMetricsURL(ctx, r, mongoDB))
 	return corev1.Container{
 		Name:            "metrics",
 		Image:           config.GetImage("metrics"),

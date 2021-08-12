@@ -16,11 +16,13 @@ Created on 29/03/2021
 */
 package statefulset
 
+// TODO Move constant to avoid duplicate entries with secret package
 const (
-	MongoName                 string = "mongodb"
-	MongoRootPasswordKey      string = "mongodb-root-password"
-	MongoContainerPort        int32  = 27017
-	MongoContainerMetricsPort int32  = 9216
+	MongoName                  string = "mongodb"
+	MongoRootPasswordKey       string = "mongodb-root-password"
+	MongoReplicaSetPasswordKey string = "mongodb-replica-set-key"
+	MongoContainerPort         int32  = 27017
+	MongoContainerMetricsPort  int32  = 9216
 )
 
 type Error struct {
