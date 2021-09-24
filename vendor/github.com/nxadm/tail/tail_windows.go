@@ -3,8 +3,9 @@
 package tail
 
 import (
-	"github.com/nxadm/tail/winfile"
 	"os"
+
+	"github.com/nxadm/tail/winfile"
 )
 
 func OpenFile(name string) (file *os.File, err error) {

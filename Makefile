@@ -40,6 +40,8 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+export PATH  := ./bin:${PATH}
+
 all: build
 
 ##@ General
@@ -118,6 +120,14 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
+GOIMPORTS = $(shell pwd)/bin/goimports
+bin/goimports: ## Download goimports locally if necessary
+	$(call go-get-tool,$(GOIMPORTS),golang.org/x/tools/cmd/goimports)
+
+# Formats the code
+.PHONY: format
+format: bin/goimports
+	goimports -w -local gitlab.w6d.io/w6d api apis controllers internal pkg main.go
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.

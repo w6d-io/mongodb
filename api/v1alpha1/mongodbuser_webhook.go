@@ -42,7 +42,10 @@ var _ webhook.Defaulter = &MongoDBUser{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (in *MongoDBUser) Default() {
 	mongodbuserlog.Info("default", "name", in.Name)
-
+	if in.Spec.ExternalRef != nil && in.Spec.ExternalRef.Port == nil {
+		var defPort int32 = 27017
+		in.Spec.ExternalRef.Port = &defPort
+	}
 }
 
 // +kubebuilder:webhook:verbs=create;update;delete,path=/validate-db-w6d-io-v1alpha1-mongodbuser,mutating=false,failurePolicy=fail,admissionReviewVersions=v1;v1beta1,sideEffects=None,groups=db.w6d.io,resources=mongodbusers,versions=v1alpha1,name=validate.mongodbuser.db.w6d.io

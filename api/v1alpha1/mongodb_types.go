@@ -45,6 +45,14 @@ type MongoDBSpec struct {
 	// TLS configuration
 	// +optional
 	TLS *k8sdbv1alpha1.TLSConfig `json:"tls,omitempty"`
+
+	// Service name of mongo to create or if empty default name will be used
+	// +optional
+	Service *corev1.LocalObjectReference `json:"service,omitempty"`
+
+	// Port of mongo service to create or if empty will be set with
+	// +optional
+	Port *int32 `json:"port,omitempty"`
 }
 
 // MongoDBStatus defines the observed state of MongoDB

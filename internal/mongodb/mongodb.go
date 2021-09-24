@@ -19,6 +19,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
+
 	db "github.com/w6d-io/mongodb/api/v1alpha1"
 	"github.com/w6d-io/mongodb/internal/util"
 	"github.com/w6d-io/mongodb/pkg/k8s/secret"
@@ -30,7 +31,7 @@ import (
 func GetClient(ctx context.Context, r client.Client, mongoDB *db.MongoDB) (*mongo.Client, error) {
 	log := util.GetLog(ctx, mongoDB).WithName("GetClient")
 	log.V(1).Info("create MongoDB client")
-	name := fmt.Sprintf("%s/%s", mongoDB.Namespace, mongoDB.Name)
+	name := GetSecretName(mongoDB)
 	password := secret.GetContentFromKey(ctx, r, name, secret.MongoRootPasswordKey)
 	credential := options.Credential{
 		Username: "root",
@@ -46,7 +47,23 @@ func GetClient(ctx context.Context, r client.Client, mongoDB *db.MongoDB) (*mong
 
 }
 
+// GetSecretName return the secret resource name
+func GetSecretName(mongoDB *db.MongoDB) string {
+	if mongoDB.Spec.AuthSecret != nil {
+		return fmt.Sprintf("%s/%s", mongoDB.Namespace, mongoDB.Spec.AuthSecret.Name)
+	}
+	return fmt.Sprintf("%s/%s", mongoDB.Namespace, mongoDB.Name)
+}
+
 // GetService return the service of mongodb
 func GetService(mongoDB *db.MongoDB) string {
-	return fmt.Sprintf("%s.%s:%d", mongoDB.Name, mongoDB.Namespace, db.MongoDBPort)
+	svc := fmt.Sprintf("%s.%s", mongoDB.Name, mongoDB.Namespace)
+	port := db.MongoDBPort
+	if mongoDB.Spec.Service != nil {
+		svc = mongoDB.Spec.Service.Name
+	}
+	if mongoDB.Spec.Port != nil {
+		port = int(*mongoDB.Spec.Port)
+	}
+	return fmt.Sprintf("%s:%d", svc, port)
 }

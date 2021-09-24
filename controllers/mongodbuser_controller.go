@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/w6d-io/mongodb/internal/util"
 	"github.com/w6d-io/mongodb/pkg/controllers/mongodb/user"

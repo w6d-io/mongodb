@@ -20,9 +20,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"k8s.io/client-go/tools/cache"
 	"math/rand"
 	"strings"
+
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/go-logr/logr"
 	"github.com/w6d-io/mongodb/internal/config"

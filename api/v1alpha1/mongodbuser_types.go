@@ -32,8 +32,24 @@ type MongoDBUserSpec struct {
 	// Privileges
 	Privileges []Privilege `json:"privileges,omitempty"`
 
-	// MongoDBRef represents the reference to the mongoDB instance for the user
-	DBRef *corev1.LocalObjectReference `json:"dbref"`
+	// DBRef represents the reference to the mongoDB instance for the user
+	// +optional
+	DBRef *corev1.LocalObjectReference `json:"dbref,omitempty"`
+
+	// ExternalRef refers to the mongo instance do not managed by the operator
+	// +optional
+	ExternalRef *ExternalRef `json:"externalRef,omitempty"`
+}
+
+type ExternalRef struct {
+	// Service contains the mongoDB address
+	Service string `json:"service"`
+
+	// Port contains the port of the mongoDB instance
+	Port *int32 `json:"port"`
+
+	// Auth contains the secret key selector of the root account
+	Auth *corev1.LocalObjectReference `json:"auth"`
 }
 
 // Password defines the password of the MongoDB

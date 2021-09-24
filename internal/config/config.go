@@ -17,10 +17,11 @@ Created on 31/03/2021
 package config
 
 import (
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
-	corev1 "k8s.io/api/core/v1"
 	"os"
+
+	"gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 

@@ -18,8 +18,9 @@ package secret_test
 
 import (
 	"context"
-	db "github.com/w6d-io/mongodb/api/v1alpha1"
 	"testing"
+
+	db "github.com/w6d-io/mongodb/api/v1alpha1"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap/zapcore"

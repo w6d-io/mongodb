@@ -78,11 +78,39 @@ func DBUpdate(old, new *MongoDB) error {
 
 func DBUserCreate(usr *MongoDBUser) error {
 	var allErrs field.ErrorList
-	if usr.Spec.DBRef == nil {
+	if usr.Spec.DBRef == nil && usr.Spec.ExternalRef == nil {
 		allErrs = append(allErrs,
-			field.Invalid(field.NewPath("spec").Child("dbref"),
-				usr.Spec.DBRef,
-				"it should be set by the mongodb instance name in the same namespace",
+			field.Invalid(field.NewPath("spec").Child("dbref", "externalRef"),
+				nil,
+				"one of those fields must be set",
+			))
+	}
+	if usr.Spec.DBRef != nil && usr.Spec.ExternalRef != nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("dbref", "externalRef"),
+				nil,
+				"only one of those field must be set",
+			))
+	}
+	if usr.Spec.ExternalRef != nil && usr.Spec.ExternalRef.Auth == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("externalRef").Child("auth"),
+				nil,
+				"must be set",
+			))
+	}
+	if usr.Spec.ExternalRef != nil && usr.Spec.ExternalRef.Auth != nil && usr.Spec.ExternalRef.Auth.Name == "" {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("externalRef").Child("auth"),
+				nil,
+				"must be set",
+			))
+	}
+	if usr.Spec.ExternalRef != nil && usr.Spec.ExternalRef.Service == "" {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("externalRef").Child("service"),
+				nil,
+				"must be set",
 			))
 	}
 	if usr.Spec.Username == "" {
@@ -125,11 +153,39 @@ func DBUserCreate(usr *MongoDBUser) error {
 func DBUserUpdate(old, usr *MongoDBUser) error {
 	var allErrs field.ErrorList
 
-	if usr.Spec.DBRef == nil {
+	if old.Spec.ExternalRef == nil && usr.Spec.DBRef == nil {
 		allErrs = append(allErrs,
-			field.Invalid(field.NewPath("spec").Child("dbref"),
+			field.Invalid(field.NewPath("spec").Child("dbref", "externalRef"),
 				usr.Spec.DBRef,
-				"it should be set by the mongodb instance name in the same namespace",
+				"one of those fields must be set",
+			))
+	}
+	if old.Spec.ExternalRef != nil && usr.Spec.DBRef != nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("dbref", "externalRef"),
+				usr.Spec.DBRef,
+				"only one of those field must be set",
+			))
+	}
+	if usr.Spec.ExternalRef != nil && usr.Spec.ExternalRef.Auth == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("externalRef").Child("auth"),
+				nil,
+				"must be set",
+			))
+	}
+	if usr.Spec.ExternalRef != nil && usr.Spec.ExternalRef.Auth != nil && usr.Spec.ExternalRef.Auth.Name == "" {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("externalRef").Child("auth"),
+				nil,
+				"must be set",
+			))
+	}
+	if usr.Spec.ExternalRef != nil && usr.Spec.ExternalRef.Service == "" {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec").Child("externalRef").Child("service"),
+				nil,
+				"must be set",
 			))
 	}
 	if usr.Spec.DBRef != nil && *old.Spec.DBRef != *usr.Spec.DBRef {

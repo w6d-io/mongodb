@@ -53,13 +53,38 @@ spec:
             description: MongoDBUserSpec defines the desired state of MongoDBUser
             properties:
               dbref:
-                description: MongoDBRef represents the reference to the mongoDB instance
+                description: DBRef represents the reference to the mongoDB instance
                   for the user
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
+                type: object
+              externalRef:
+                description: ExternalRef refers to the mongo instance do not managed
+                  by the operator
+                properties:
+                  auth:
+                    description: Auth contains the secret key selector of the root
+                      account
+                    properties:
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                    type: object
+                  port:
+                    description: Port contains the port of the mongoDB instance
+                    format: int32
+                    type: integer
+                  service:
+                    description: Service contains the mongoDB address
+                    type: string
+                required:
+                - auth
+                - port
+                - service
                 type: object
               password:
                 description: Password is the password associated to the user
@@ -118,8 +143,6 @@ spec:
                 description: Username is the user name to be create on the MongoDB
                   Instance
                 type: string
-            required:
-            - dbref
             type: object
           status:
             description: MongoDBUserStatus defines the observed state of MongoDBUser

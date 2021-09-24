@@ -21,6 +21,9 @@ import (
 	"errors"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/w6d-io/mongodb/internal/mongodb"
 	"github.com/w6d-io/mongodb/internal/util"
 	"github.com/w6d-io/mongodb/pkg/k8s/secret"
@@ -43,7 +46,7 @@ func Create(ctx context.Context, r client.Client, user *db.MongoDBUser) error {
 	if ok {
 		return Update(ctx, r, user)
 	}
-	mdb, err := GetMongoDB(ctx, r, types.NamespacedName{Namespace: user.Namespace, Name: user.Spec.DBRef.Name})
+	mdb, err := GetMongoDB(ctx, r, user)
 	if err != nil {
 		log.Error(err, "get MongoDB failed")
 		return err
@@ -91,7 +94,7 @@ func Update(ctx context.Context, r client.Client, user *db.MongoDBUser) error {
 		log.Error(nil, "this user is already handle by an other resource", "user", user.Spec.Username)
 		return errors.New("a user can be handle only by one resource")
 	}
-	mdb, err := GetMongoDB(ctx, r, types.NamespacedName{Namespace: user.Namespace, Name: user.Spec.DBRef.Name})
+	mdb, err := GetMongoDB(ctx, r, user)
 	if err != nil {
 		log.Error(err, "get MongoDB failed")
 		return err
@@ -127,7 +130,7 @@ func Update(ctx context.Context, r client.Client, user *db.MongoDBUser) error {
 func Delete(ctx context.Context, r client.Client, user *db.MongoDBUser) error {
 	log := util.GetLog(ctx, user).WithName("User").WithName("Delete").WithValues("username", user.Spec.Username)
 	log.V(1).Info("delete MongoDB user")
-	mdb, err := GetMongoDB(ctx, r, types.NamespacedName{Namespace: user.Namespace, Name: user.Spec.DBRef.Name})
+	mdb, err := GetMongoDB(ctx, r, user)
 	if err != nil {
 		log.Error(err, "get MongoDB failed")
 		return err
@@ -171,12 +174,25 @@ func Delete(ctx context.Context, r client.Client, user *db.MongoDBUser) error {
 }
 
 // GetMongoDB return the mongoDB resource referenced by the name
-func GetMongoDB(ctx context.Context, r client.Client, name types.NamespacedName) (*db.MongoDB, error) {
+func GetMongoDB(ctx context.Context, r client.Client, user *db.MongoDBUser) (*db.MongoDB, error) {
 	correlationID := ctx.Value("correlation_id")
-	log := ctrl.Log.WithValues("correlation_id", correlationID, "object", name.String()).WithName("User").WithName("GetMongoDB")
+	log := ctrl.Log.WithValues("correlation_id", correlationID).WithName("User").WithName("GetMongoDB")
 	log.V(1).Info("get")
+
+	if user.Spec.ExternalRef != nil {
+		return &db.MongoDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: user.Namespace,
+			},
+			Spec: db.MongoDBSpec{
+				AuthSecret: user.Spec.ExternalRef.Auth,
+				Service:    &corev1.LocalObjectReference{Name: user.Spec.ExternalRef.Service},
+				Port:       user.Spec.ExternalRef.Port,
+			},
+		}, nil
+	}
 	mongoDB := &db.MongoDB{}
-	if err := r.Get(ctx, name, mongoDB); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: user.Spec.DBRef.Name, Namespace: user.Namespace}, mongoDB); err != nil {
 		log.Error(err, "get MongoDB failed")
 		return nil, err
 	}
@@ -238,7 +254,7 @@ func GetPrivileges(ctx context.Context, user *db.MongoDBUser) []bson.M {
 func GetUsers(ctx context.Context, r client.Client, user *db.MongoDBUser) (*Response, error) {
 	log := util.GetLog(ctx, user).WithName("User").WithName("GetUsers")
 	log.V(1).Info("get MongoDB users")
-	mdb, err := GetMongoDB(ctx, r, types.NamespacedName{Namespace: user.Namespace, Name: user.Spec.DBRef.Name})
+	mdb, err := GetMongoDB(ctx, r, user)
 	if err != nil {
 		log.Error(err, "get MongoDB failed")
 		return nil, err

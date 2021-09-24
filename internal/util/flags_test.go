@@ -17,10 +17,11 @@ Created on 28/03/2021
 package util_test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/w6d-io/mongodb/internal/util"
-	"os"
 )
 
 var _ = Describe("Flags", func() {
