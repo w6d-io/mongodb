@@ -153,14 +153,14 @@ func DBUserCreate(usr *MongoDBUser) error {
 func DBUserUpdate(old, usr *MongoDBUser) error {
 	var allErrs field.ErrorList
 
-	if old.Spec.ExternalRef == nil && usr.Spec.DBRef == nil {
+	if usr.Spec.ExternalRef == nil && usr.Spec.DBRef == nil {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec").Child("dbref", "externalRef"),
 				usr.Spec.DBRef,
 				"one of those fields must be set",
 			))
 	}
-	if old.Spec.ExternalRef != nil && usr.Spec.DBRef != nil {
+	if usr.Spec.ExternalRef != nil && usr.Spec.DBRef != nil {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec").Child("dbref", "externalRef"),
 				usr.Spec.DBRef,

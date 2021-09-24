@@ -23,7 +23,7 @@ package v1alpha1
 import (
 	k8sv1alpha1 "github.com/w6d-io/mongodb/apis/k8s/v1alpha1"
 	k8sdbv1alpha1 "github.com/w6d-io/mongodb/apis/k8sdb/v1alpha1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
