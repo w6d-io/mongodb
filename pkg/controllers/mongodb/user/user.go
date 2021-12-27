@@ -141,6 +141,9 @@ func Delete(ctx context.Context, r client.Client, user *db.MongoDBUser) error {
 		return err
 	}
 	log.V(1).Info("users", "content", users)
+	if len(users) == 0 {
+		return nil
+	}
 	if users[0].CustomData.ParentID != string(user.GetUID()) {
 		log.V(1).Info("skipped deletion", "user", user.Spec.Username)
 		return nil
