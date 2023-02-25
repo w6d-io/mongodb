@@ -23,9 +23,8 @@ import (
 	"regexp"
 	"time"
 
-	"strings"
-
 	"github.com/google/gofuzz/bytesource"
+	"strings"
 )
 
 // fuzzFuncMap is a map from a type to a fuzzFunc that handles that type.
